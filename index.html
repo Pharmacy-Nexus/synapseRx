@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nexus Clinical Pharmacist AI</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">✚</div>
+        <div>
+          <h1>Nexus</h1>
+          <p>Clinical Pharmacist AI</p>
+        </div>
+      </div>
+
+      <button id="newChatBtn" class="new-chat-btn">+ New Chat</button>
+
+      <div class="sidebar-box">
+        <h3>Auto Mode</h3>
+        <p>
+          The assistant automatically detects:
+          Drug Info, Drug Safety, Case Analysis, Report, or General Chat.
+        </p>
+      </div>
+
+      <div class="sidebar-footer">
+        Decision support only. Always verify with current guidelines and patient-specific factors.
+      </div>
+    </aside>
+
+    <main class="chat-area">
+      <header class="chat-header">
+        <div>
+          <h2>Nexus Clinical Pharmacist AI</h2>
+          <p>Chat + Auto mode detection + PDF export</p>
+        </div>
+        <button id="exportPdfBtn" class="export-btn">Export PDF</button>
+      </header>
+
+      <section id="messages" class="messages"></section>
+
+      <form id="chatForm" class="composer">
+        <textarea
+          id="messageInput"
+          rows="1"
+          placeholder="Describe the patient case, ask about a drug, or request a report..."
+        ></textarea>
+        <button type="submit" id="sendBtn">Send</button>
+      </form>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
