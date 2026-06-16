@@ -1,38 +1,83 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nexus Clinical Pharmacist AI</title>
+  <title>Nexus Clinical Pharmacist</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="app">
+  <div class="app-shell">
     <aside class="sidebar">
-      <div class="brand"><div class="brand-mark">Nx</div><div><h1>Nexus</h1><p>Clinical Pharmacist Workspace</p></div></div>
-      <button id="newChatBtn" class="new-chat-btn">New consultation</button>
-      <div class="sidebar-box"><h3>Workflow</h3><p>Auto-detects drug info, interaction checks, case analysis, comparison, reverse scenario, and report mode.</p></div>
-      <div class="sidebar-box compact"><h3>Quick commands</h3><p><strong>@compare</strong> دواء مقابل دواء</p><p><strong>@reverse</strong> سيناريو عكسي</p><p><strong>@case</strong> تحليل حالة</p><p><strong>@report</strong> تجهيز تقرير</p></div>
-      <div class="sidebar-footer"><button id="themeToggle" class="theme-toggle" title="Toggle theme"><span class="theme-label">Toggle theme</span></button><p>Clinical decision support for pharmacists. Verify before applying.</p></div>
-    </aside>
-    <main class="chat-area">
-      <header class="chat-header"><div><h2>Nexus Clinical Pharmacist AI</h2><p>Clinical chat with validation, workflow routing, and editable PDF report.</p></div><button id="exportPdfBtn" class="export-btn">Report PDF</button></header>
-      <section id="messages" class="messages"></section>
-      <form id="chatForm" class="composer" autocomplete="off">
-        <div class="input-shell"><textarea id="messageInput" rows="1" placeholder="اكتب الحالة أو اسأل عن دواء... استخدم @ للأوامر"></textarea>
-          <div id="commandMenu" class="command-menu hidden">
-            <button type="button" data-template="/قارن ">@compare <span>مقارنة بين دوائين</span></button>
-            <button type="button" data-template="/عكس ">@reverse <span>سيناريو عكسي لدواء</span></button>
-            <button type="button" data-template="حلل الحالة: ">@case <span>تحليل حالة ناقصة أو كاملة</span></button>
-            <button type="button" data-template="اعمل تقرير PDF للحالة: ">@report <span>تجهيز تقرير</span></button>
-            <button type="button" data-template="اشرح دواء: ">@drug <span>معلومة دوائية</span></button>
-            <button type="button" data-template="راجع الأمان الدوائي: ">@safety <span>تداخلات وجرعات</span></button>
-          </div>
+      <div class="brand-row">
+        <div class="logo-mark">Nx</div>
+        <div>
+          <div class="brand-title">Nexus</div>
+          <div class="brand-subtitle">Clinical Pharmacist Workspace</div>
         </div>
-        <button type="submit" id="sendBtn" aria-label="Send"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.7 20.3 21 12 3.7 3.7 6 10.7 14 12l-8 1.3-2.3 7Z"></path></svg></button>
-      </form>
+      </div>
+
+      <button id="newChatBtn" class="primary-btn">New consultation</button>
+
+      <div class="side-card">
+        <div class="side-title">Workspace modes</div>
+        <button class="side-command" data-command="@case ">@case <span>تحليل حالة</span></button>
+        <button class="side-command" data-command="@compare ">@compare <span>مقارنة دوائين</span></button>
+        <button class="side-command" data-command="@reverse ">@reverse <span>عكس السيناريو</span></button>
+        <button class="side-command" data-command="@report ">@report <span>تجهيز تقرير</span></button>
+      </div>
+
+      <div class="side-note">
+        Built for pharmacist reasoning: mode routing, silent validation, and editable reports.
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <div class="page-title">Nexus Clinical Pharmacist</div>
+          <div class="page-subtitle">Ask naturally. I route the task automatically.</div>
+        </div>
+        <button id="exportPdfBtn" class="secondary-btn">Report PDF</button>
+      </header>
+
+      <section id="messages" class="messages"></section>
+
+      <section class="composer-wrap">
+        <div id="commandPalette" class="command-palette hidden">
+          <button data-command="@case "><b>@case</b><span>Analyze incomplete or full patient case</span></button>
+          <button data-command="@compare "><b>@compare</b><span>Compare two medicines</span></button>
+          <button data-command="@reverse "><b>@reverse</b><span>Reverse scenario / interaction simulation</span></button>
+          <button data-command="@report "><b>@report</b><span>Prepare editable PDF report</span></button>
+        </div>
+
+        <form id="chatForm" class="composer">
+          <textarea id="messageInput" rows="1" placeholder="Message Nexus… try @compare ramipril losartan"></textarea>
+          <button id="sendBtn" type="submit" aria-label="Send message">↑</button>
+        </form>
+        <div class="composer-hint">اكتب <b>@</b> لفتح أوامر المساعد · Ctrl/⌘ + Enter للإرسال</div>
+      </section>
     </main>
   </div>
-  <div id="reportModal" class="modal hidden" role="dialog" aria-modal="true"><div class="modal-panel"><div class="modal-header"><div><h3>تقرير PDF قابل للتعديل</h3><p>عدّل، احذف، أو أضف ملاحظات قبل التصدير.</p></div><button id="closeReportModal" class="icon-btn" type="button">×</button></div><textarea id="reportEditor" class="report-editor"></textarea><div class="modal-actions"><button id="downloadPdfBtn" class="primary-btn" type="button">Download PDF</button><button id="copyReportBtn" class="secondary-btn" type="button">Copy</button><button id="cancelReportBtn" class="secondary-btn" type="button">Cancel</button></div></div></div>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script><script src="script.js"></script>
-</body></html>
+
+  <div id="pdfModal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">Editable report preview</div>
+          <div class="modal-subtitle">عدّل أو احذف أي جزء قبل التصدير</div>
+        </div>
+        <button id="closePdfModal" class="ghost-btn">Close</button>
+      </div>
+      <textarea id="pdfEditor" class="pdf-editor"></textarea>
+      <div class="modal-actions">
+        <button id="downloadPdfBtn" class="primary-btn">Download PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

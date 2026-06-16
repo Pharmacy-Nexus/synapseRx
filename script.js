@@ -3,39 +3,243 @@ const formEl = document.getElementById("chatForm");
 const inputEl = document.getElementById("messageInput");
 const newChatBtn = document.getElementById("newChatBtn");
 const exportPdfBtn = document.getElementById("exportPdfBtn");
-const themeToggle = document.getElementById("themeToggle");
-const commandMenu = document.getElementById("commandMenu");
-const reportModal = document.getElementById("reportModal");
-const reportEditor = document.getElementById("reportEditor");
-const closeReportModal = document.getElementById("closeReportModal");
-const cancelReportBtn = document.getElementById("cancelReportBtn");
+const commandPalette = document.getElementById("commandPalette");
+const pdfModal = document.getElementById("pdfModal");
+const pdfEditor = document.getElementById("pdfEditor");
+const closePdfModal = document.getElementById("closePdfModal");
 const downloadPdfBtn = document.getElementById("downloadPdfBtn");
-const copyReportBtn = document.getElementById("copyReportBtn");
+
+// لو الواجهة على GitHub Pages والـ API على Vercel، حط لينك Vercel الكامل هنا.
+// مثال: const API_ENDPOINT = "https://your-vercel-app.vercel.app/api/chat";
+const API_ENDPOINT = window.NEXUS_API_ENDPOINT || "/api/chat";
+
 let conversation = [];
-const DISCLAIMER = "هذا الرد للأغراض التعليمية فقط – راجع الصيدلي السريري قبل التطبيق";
-function initTheme(){document.documentElement.setAttribute("data-theme",localStorage.getItem("nexus-theme")||"dark");}
-function toggleTheme(){const current=document.documentElement.getAttribute("data-theme")||"dark";const next=current==="light"?"dark":"light";document.documentElement.setAttribute("data-theme",next);localStorage.setItem("nexus-theme",next);} initTheme(); themeToggle.addEventListener("click",toggleTheme);
-function escapeHtml(text=""){return String(text).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-function autoGrow(el){el.style.height="auto";el.style.height=Math.min(el.scrollHeight,180)+"px";}
-function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
-inputEl.addEventListener("input",()=>{autoGrow(inputEl);handleCommandMenu();});
-function normalizeMode(mode="general_chat"){return "@"+mode.replace(/_/g,"-");}
-function escapeRegExp(s){return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
-function convertMarkdownTables(text){const lines=text.split("\n"),out=[];let i=0;while(i<lines.length){if(lines[i].includes("|")&&i+1<lines.length&&/^\s*\|?[\s:-]+\|[\s|:-]+\|?\s*$/.test(lines[i+1])){const headers=lines[i].split("|").map(x=>x.trim()).filter(Boolean);i+=2;const rows=[];while(i<lines.length&&lines[i].includes("|")){rows.push(lines[i].split("|").map(x=>x.trim()).filter(Boolean));i++;}out.push(`<table class="compare-table"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table>`);}else{out.push(lines[i]);i++;}}return out.join("\n");}
-function formatAssistantText(text){let safe=escapeHtml(text);safe=convertMarkdownTables(safe);["Case Summary","Clinical Assessment","Drug Related Problems","Missing Information","Recommendations","Patient Counseling","Confidence Level","Overview","Mechanism","Main Uses","Key Warnings","Monitoring","Interaction Summary","Report","Summary","Comparison Table","Reverse Scenario","Educational Simulation","الموجود","الناقص","التوصيات","ملخص الحالة","تحليل الحالة"].forEach(h=>{safe=safe.replace(new RegExp(`(^|<br>|\\n)(${escapeRegExp(h)})(:)?`,`gi`),`$1<span class="section-title">$2</span>`)});return safe.replace(/\n/g,"<br>");}
-function avatarHtml(role){return `<div class="avatar">${role==="assistant"?"Nx":"You"}</div>`;}
-function disclaimerHtml(){return `<div class="disclaimer" title="${escapeHtml(DISCLAIMER)}">⚖ المسؤولية التعليمية</div>`;}
-function appendMessage(role,content,options={}){const{isHtml=false,loading=false,mode="",validationHtml=""}=options;const row=document.createElement("div");row.className=`message-row ${role}`;const bubble=document.createElement("div");bubble.className="message-bubble";if(loading){bubble.innerHTML=`<div class="silent-status"><span>جاري التحقق من التداخلات الدوائية والجرعات...</span><span class="loader-line"></span></div>`;}else{const modeChip=mode?`<div class="mode-chip">${normalizeMode(mode)}</div>`:"";const body=isHtml?content:escapeHtml(content).replace(/\n/g,"<br>");bubble.innerHTML=`${modeChip}${validationHtml}${body}${role==="assistant"?disclaimerHtml():""}`;}if(role==="user"){row.appendChild(bubble);row.insertAdjacentHTML("beforeend",avatarHtml(role));}else{row.insertAdjacentHTML("beforeend",avatarHtml(role));row.appendChild(bubble);}messagesEl.appendChild(row);messagesEl.scrollTop=messagesEl.scrollHeight;return{row,bubble};}
-function analyzeCaseCompleteness(text=""){const present=[],missing=[],suggestions=[];const hasAge=/\b\d{1,3}\s*(?:سنة|عام|year|y\/o|yo|year-old)\b/i.test(text);const hasDrug=/(ramipril|potassium|metformin|warfarin|amiodarone|alfuzosin|دواء|بياخد|taking|on\s+[a-z])/i.test(text);const hasLab=/(k\s*=|potassium|creatinine|crcl|egfr|سكر|بوتاسيوم|كرياتينين|تحاليل|labs)/i.test(text);const hasDisease=/(htn|hypertension|dm|diabetes|ckd|hf|ضغط|سكر|كلى|قلب|تشخيص|diagnosis)/i.test(text);const isCaseLike=hasAge||/مريض|patient|case|حالة/i.test(text)||(hasDrug&&(hasDisease||hasLab));if(!isCaseLike)return{isCaseLike:false,present,missing,suggestions};if(hasAge)present.push("العمر");else{missing.push("العمر");suggestions.push({label:"اسأل عن العمر",prompt:"ما عمر المريض؟"});}if(hasDrug)present.push("الأدوية المذكورة");else{missing.push("الأدوية الحالية");suggestions.push({label:"اسأل عن الأدوية",prompt:"ما الأدوية والمكملات التي يستخدمها المريض؟"});}if(hasLab)present.push("بعض التحاليل أو المؤشرات");else{missing.push("التحاليل المهمة مثل K, SCr/eGFR أو حسب الحالة");suggestions.push({label:"اسأل عن التحاليل",prompt:"ما آخر نتائج K, serum creatinine, eGFR/CrCl؟"});}if(hasDisease)present.push("بعض التاريخ المرضي/التشخيص");else{missing.push("التاريخ المرضي والتشخيصات");suggestions.push({label:"اسأل عن التاريخ المرضي",prompt:"هل يوجد CKD, diabetes, heart disease, hypertension أو تاريخ إغماء/هبوط؟"});}if(!/(symptom|أعراض|دوخة|خفقان|chest pain|weakness|syncope|palpitation)/i.test(text)){missing.push("الأعراض الحالية وred flags");suggestions.push({label:"اسأل عن الأعراض",prompt:"هل يوجد دوخة، إغماء، خفقان، ألم صدر، ضعف عضلي أو أعراض خطورة؟"});}return{isCaseLike,present,missing,suggestions};}
-function buildValidationHtml(userText){const a=analyzeCaseCompleteness(userText);if(!a.isCaseLike)return"";const present=a.present.length?a.present:["لا توجد بيانات كافية"];const missing=a.missing.length?a.missing:["لا توجد نواقص واضحة مبدئيًا"];const buttons=a.suggestions.map(s=>`<button class="suggestion-btn" type="button" data-suggest="${escapeHtml(s.prompt)}">${escapeHtml(s.label)}</button>`).join("");return `<div class="validation-card"><h4>Silent validation</h4><div class="validation-grid"><div><strong>موجود</strong>${present.map(x=>`<p>${escapeHtml(x)}</p>`).join("")}</div><div><strong>ناقص</strong>${missing.map(x=>`<p>${escapeHtml(x)}</p>`).join("")}</div></div>${buttons?`<div class="smart-buttons">${buttons}</div>`:""}</div>`;}
-function addWelcomeMessage(){const welcome=`<span class="section-title">Welcome to Nexus</span>اكتب سؤالك بشكل طبيعي، وأنا أحدد نوع المهمة تلقائيًا.<br><br>أمثلة سريعة:<br><strong>/قارن ramipril losartan</strong><br><strong>/عكس alfuzosin</strong><br><strong>مريض 65 سنة على ramipril</strong><br><strong>Warfarin with amiodarone?</strong><br><br>اكتب <strong>@</strong> لفتح أوامر سريعة.`;appendMessage("assistant",welcome,{isHtml:true,mode:"general_chat"});conversation.push({role:"assistant",content:"Welcome to Nexus."});}
-function resetChat(){messagesEl.innerHTML="";conversation=[];addWelcomeMessage();} newChatBtn.addEventListener("click",resetChat);
-function handleCommandMenu(){const value=inputEl.value;const caret=inputEl.selectionStart;const before=value.slice(0,caret);const lastToken=before.split(/\s/).pop();if(lastToken&&lastToken.startsWith("@"))commandMenu.classList.remove("hidden");else commandMenu.classList.add("hidden");}
-commandMenu.addEventListener("click",e=>{const btn=e.target.closest("button[data-template]");if(!btn)return;inputEl.value=btn.dataset.template;commandMenu.classList.add("hidden");inputEl.focus();autoGrow(inputEl);});
-document.addEventListener("click",e=>{if(!commandMenu.contains(e.target)&&e.target!==inputEl)commandMenu.classList.add("hidden");});
-messagesEl.addEventListener("click",e=>{const btn=e.target.closest(".suggestion-btn");if(!btn)return;inputEl.value=btn.dataset.suggest||"";inputEl.focus();autoGrow(inputEl);});
-formEl.addEventListener("submit",async e=>{e.preventDefault();const userText=inputEl.value.trim();if(!userText)return;appendMessage("user",userText);conversation.push({role:"user",content:userText});inputEl.value="";autoGrow(inputEl);commandMenu.classList.add("hidden");const loadingMessage=appendMessage("assistant","",{loading:true});const started=Date.now();try{await sleep(500);const response=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:conversation})});const data=await response.json();if(!response.ok)throw new Error(data.error||JSON.stringify(data.details||{})||"Something went wrong.");const elapsed=Date.now()-started;if(elapsed<650)await sleep(650-elapsed);const validationHtml=buildValidationHtml(userText);const formatted=formatAssistantText(data.reply||"No response.");loadingMessage.bubble.innerHTML=`<div class="mode-chip">${normalizeMode(data.mode||"general_chat")}</div>${validationHtml}${formatted}${disclaimerHtml()}`;conversation.push({role:"assistant",content:data.reply||"No response."});}catch(error){loadingMessage.bubble.innerHTML=`<span class="section-title">Connection error</span>${escapeHtml(error.message||"Failed to connect to AI.")}`;conversation.push({role:"assistant",content:`Error: ${error.message||"Failed to connect to AI."}`});}messagesEl.scrollTop=messagesEl.scrollHeight;});
-function buildReportText(){const lines=["Nexus Clinical Pharmacist AI",`Generated: ${new Date().toLocaleString()}`,"","Disclaimer:",DISCLAIMER,"","Conversation:",""];conversation.forEach(msg=>{lines.push(`${msg.role==="user"?"User":"Assistant"}:`);lines.push(msg.content||"");lines.push("");});lines.push("Manual notes:");lines.push("");return lines.join("\n");}
-exportPdfBtn.addEventListener("click",()=>{reportEditor.value=buildReportText();reportModal.classList.remove("hidden");reportEditor.focus();});function closeModal(){reportModal.classList.add("hidden");}closeReportModal.addEventListener("click",closeModal);cancelReportBtn.addEventListener("click",closeModal);copyReportBtn.addEventListener("click",async()=>{await navigator.clipboard.writeText(reportEditor.value);copyReportBtn.textContent="Copied";setTimeout(()=>copyReportBtn.textContent="Copy",900);});downloadPdfBtn.addEventListener("click",()=>{const{jsPDF}=window.jspdf;const doc=new jsPDF();const lines=doc.splitTextToSize(reportEditor.value||"",180);let y=16;doc.setFontSize(11);lines.forEach(line=>{if(y>282){doc.addPage();y=16;}doc.text(line,14,y);y+=6;});doc.save("nexus-clinical-report.pdf");closeModal();});
-document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key==="Enter"&&document.activeElement===inputEl)formEl.dispatchEvent(new Event("submit"));if(e.key==="Escape"){commandMenu.classList.add("hidden");if(!reportModal.classList.contains("hidden"))closeModal();}});
+
+function escapeHtml(text = "") {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function autoGrow(el) {
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 170) + "px";
+}
+inputEl.addEventListener("input", () => {
+  autoGrow(inputEl);
+  if (inputEl.value.includes("@")) commandPalette.classList.remove("hidden");
+});
+inputEl.addEventListener("focus", () => {
+  if (inputEl.value.includes("@")) commandPalette.classList.remove("hidden");
+});
+
+document.addEventListener("click", (e) => {
+  if (!commandPalette.contains(e.target) && e.target !== inputEl) commandPalette.classList.add("hidden");
+});
+
+function normalizeCommand(text) {
+  return text
+    .replace(/^\/قارن\s+/i, "@compare ")
+    .replace(/^\/عكس\s+/i, "@reverse ")
+    .replace(/^\/تقرير\s*/i, "@report ");
+}
+
+function formatAssistantText(text) {
+  let safe = escapeHtml(text);
+  const headings = [
+    "Case Summary", "Clinical Assessment", "Drug Related Problems", "Missing Information",
+    "Recommendations", "Patient Counseling", "Confidence Level", "Overview", "Mechanism",
+    "Main Uses", "Key Warnings", "Monitoring", "Interaction Summary", "Report", "Summary",
+    "موجود", "ناقص", "اقتراحات", "الخلاصة", "التقييم", "التوصيات", "التحذيرات"
+  ];
+  headings.forEach((heading) => {
+    const regex = new RegExp(heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g");
+    safe = safe.replace(regex, `<span class="section-title">${heading}</span>`);
+  });
+  return safe.replace(/\n/g, "<br>");
+}
+
+function addDisclaimer(bubble) {
+  const note = document.createElement("div");
+  note.className = "disclaimer";
+  note.innerHTML = `<span class="scale" title="هذا الرد للأغراض التعليمية فقط – راجع الصيدلي السريري قبل التطبيق">⚖</span> Educational decision support only.`;
+  bubble.appendChild(note);
+}
+
+function appendMessage(role, content, options = {}) {
+  const { isHtml = false, mode = "", validation = false } = options;
+  const row = document.createElement("div");
+  row.className = `message-row ${role}`;
+
+  const avatar = document.createElement("div");
+  avatar.className = "avatar";
+  avatar.textContent = role === "assistant" ? "Nx" : "You";
+
+  const bubble = document.createElement("div");
+  bubble.className = "message-bubble";
+
+  if (validation) {
+    bubble.innerHTML = `<div class="validation-box"><span class="spinner"></span><span>جاري التحقق من التداخلات الدوائية والجرعات...</span></div>`;
+  } else {
+    const chip = mode ? `<div class="mode-chip">@${mode.replace(/_/g, "-")}</div>` : "";
+    bubble.innerHTML = isHtml ? `${chip}${content}` : `${chip}${escapeHtml(content).replace(/\n/g, "<br>")}`;
+    if (role === "assistant") addDisclaimer(bubble);
+  }
+
+  row.appendChild(avatar);
+  row.appendChild(bubble);
+  messagesEl.appendChild(row);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  return { row, bubble };
+}
+
+function addWelcomeMessage() {
+  const welcome = `
+    <div class="welcome-center">
+      <div class="welcome-mark">Nx</div>
+      <h1>How can I help?</h1>
+      <p>اكتب سؤالك بشكل طبيعي. Nexus سيحدد نوع المهمة تلقائيًا: معلومات دواء، تداخلات، تحليل حالة، مقارنة، أو تقرير.</p>
+      <div class="prompt-grid">
+        <button class="prompt-card" data-prompt="@compare ramipril losartan"><b>@compare</b><span>مقارنة دوائين</span></button>
+        <button class="prompt-card" data-prompt="@reverse alfuzosin"><b>@reverse</b><span>عكس سيناريو تعليمي</span></button>
+        <button class="prompt-card" data-prompt="مريض 65 سنة على ramipril"><b>@case</b><span>تحليل حالة ناقصة</span></button>
+        <button class="prompt-card" data-prompt="Warfarin with amiodarone?"><b>@safety</b><span>فحص تداخل دوائي</span></button>
+      </div>
+    </div>
+  `;
+  const holder = document.createElement("div");
+  holder.innerHTML = welcome;
+  messagesEl.appendChild(holder.firstElementChild);
+}
+
+function resetChat() {
+  messagesEl.innerHTML = "";
+  conversation = [];
+  addWelcomeMessage();
+}
+
+newChatBtn.addEventListener("click", resetChat);
+
+document.addEventListener("click", (e) => {
+  const promptBtn = e.target.closest("[data-prompt]");
+  if (promptBtn) {
+    inputEl.value = promptBtn.dataset.prompt;
+    inputEl.focus();
+    autoGrow(inputEl);
+  }
+  const cmdBtn = e.target.closest("[data-command]");
+  if (cmdBtn && !promptBtn) {
+    inputEl.value = cmdBtn.dataset.command + inputEl.value.replace("@", "");
+    inputEl.focus();
+    commandPalette.classList.add("hidden");
+    autoGrow(inputEl);
+  }
+  const smartBtn = e.target.closest("[data-smart]");
+  if (smartBtn) {
+    inputEl.value = smartBtn.dataset.smart;
+    inputEl.focus();
+    autoGrow(inputEl);
+  }
+});
+
+function smartButtonsHtml() {
+  return `
+    <div class="smart-actions">
+      <button data-smart="أضف K و serum creatinine و eGFR للحالة السابقة">أضف التحاليل</button>
+      <button data-smart="اسأل المريض عن الدوخة، الإغماء، الخفقان، وأدوية الضغط الأخرى">أسئلة متابعة</button>
+      <button data-smart="حوّل آخر رد إلى تقرير مختصر قابل للطباعة">تجهيز تقرير</button>
+    </div>
+  `;
+}
+
+async function safeJsonResponse(response) {
+  const text = await response.text();
+  try { return JSON.parse(text); }
+  catch {
+    if (text.trim().startsWith("<")) {
+      throw new Error("الـ API غير شغال هنا. أنت غالبًا فاتح الموقع من GitHub Pages؛ لازم تستخدم Vercel للـ /api أو تحط رابط Vercel الكامل في API_ENDPOINT.");
+    }
+    throw new Error(text.slice(0, 180) || "Invalid server response");
+  }
+}
+
+formEl.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const userText = normalizeCommand(inputEl.value.trim());
+  if (!userText) return;
+
+  const welcome = document.querySelector(".welcome-center");
+  if (welcome) welcome.remove();
+
+  appendMessage("user", userText);
+  conversation.push({ role: "user", content: userText });
+  inputEl.value = "";
+  autoGrow(inputEl);
+  commandPalette.classList.add("hidden");
+
+  const loadingMessage = appendMessage("assistant", "", { validation: true });
+
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  try {
+    const response = await fetch(API_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: conversation })
+    });
+    const data = await safeJsonResponse(response);
+    if (!response.ok) throw new Error(data.error || "AI request failed.");
+
+    const formatted = formatAssistantText(data.reply || "No response.");
+    loadingMessage.bubble.innerHTML = `<div class="mode-chip">@${(data.mode || "general-chat").replace(/_/g, "-")}</div>${formatted}`;
+    if ((data.mode || "").includes("case") || /ناقص|missing/i.test(data.reply || "")) {
+      loadingMessage.bubble.innerHTML += smartButtonsHtml();
+    }
+    addDisclaimer(loadingMessage.bubble);
+    conversation.push({ role: "assistant", content: data.reply || "No response." });
+  } catch (error) {
+    loadingMessage.bubble.innerHTML = `<span class="section-title">Connection error</span>${escapeHtml(error.message)}`;
+    conversation.push({ role: "assistant", content: `Error: ${error.message}` });
+  }
+
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+});
+
+function buildReportText() {
+  return conversation.map((msg) => `${msg.role === "user" ? "User" : "Nexus"}:\n${msg.content}`).join("\n\n---\n\n");
+}
+
+exportPdfBtn.addEventListener("click", () => {
+  pdfEditor.value = buildReportText();
+  pdfModal.classList.remove("hidden");
+});
+closePdfModal.addEventListener("click", () => pdfModal.classList.add("hidden"));
+
+downloadPdfBtn.addEventListener("click", () => {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const text = pdfEditor.value || buildReportText();
+  let y = 16;
+  doc.setFontSize(15);
+  doc.text("Nexus Clinical Pharmacist Report", 14, y);
+  y += 10;
+  doc.setFontSize(9);
+  doc.text(`Generated: ${new Date().toLocaleString()}`, 14, y);
+  y += 10;
+  doc.setFontSize(10);
+  const lines = doc.splitTextToSize(text, 180);
+  lines.forEach((line) => {
+    if (y > 280) { doc.addPage(); y = 16; }
+    doc.text(line, 14, y);
+    y += 5.5;
+  });
+  doc.save("nexus-report.pdf");
+  pdfModal.classList.add("hidden");
+});
+
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && document.activeElement === inputEl) {
+    formEl.dispatchEvent(new Event("submit"));
+  }
+  if (e.key === "Escape") commandPalette.classList.add("hidden");
+});
+
 resetChat();
