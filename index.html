@@ -3,69 +3,70 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nexus AI Pharmacist</title>
+  <title>Nexus Rx</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="app-shell">
+  <div class="app">
     <aside class="sidebar">
-      <div class="brand-row">
-        <div class="logo-mark">Nx</div>
+      <div class="brand">
+        <div class="brand-icon">Nx</div>
         <div>
-          <div class="brand-title">Nexus</div>
-          <div class="brand-subtitle">AI Pharmacist Workspace</div>
+          <div class="brand-title">Nexus Rx</div>
+          <div class="brand-subtitle">Clinical AI Assistant</div>
         </div>
       </div>
 
-      <button id="newChatBtn" class="primary-btn">New chat</button>
-      <input id="chatSearch" class="chat-search" placeholder="Search chats..." />
+      <button id="newChatBtn" class="new-btn">New Consultation</button>
 
-      <div class="side-section-title">Pinned</div>
-      <div id="pinnedChats" class="chat-list"></div>
+      <div class="nav-label">Main</div>
+      <button class="nav-item active" id="newChatMirror">New Chat</button>
 
-      <div class="side-section-title">Chats</div>
-      <div id="chatList" class="chat-list"></div>
+      <div class="nav-label">Recent History</div>
+      <div id="chatList" class="history-list"></div>
 
-      <div class="side-card">
-        <div class="side-title">Modes</div>
-        <button class="side-command" data-command="@case ">@case <span>تحليل حالة</span></button>
-        <button class="side-command" data-command="@compare ">@compare <span>مقارنة دوائين</span></button>
-        <button class="side-command" data-command="@reverse ">@reverse <span>عكس السيناريو</span></button>
-        <button class="side-command" data-command="@report ">@report <span>تجهيز تقرير</span></button>
+      <div class="nav-label">Tools</div>
+      <div class="tool-list">
+        <button class="tool-tab tool-general active" data-command="">General</button>
+        <button class="tool-tab tool-case" data-command="@case ">Case</button>
+        <button class="tool-tab tool-safety" data-command="@safety ">Safety</button>
+        <button class="tool-tab tool-compare" data-command="@compare ">Compare</button>
+        <button class="tool-tab tool-reverse" data-command="@reverse ">Reverse</button>
+        <button class="tool-tab tool-report" data-command="@report ">Report</button>
       </div>
 
-      <div class="side-note">Saved chats are stored locally in this browser.</div>
+      <div class="spacer"></div>
+
+      <button class="nav-item subtle" id="pinChatBtn">Pin Chat</button>
+      <button class="nav-item subtle" id="renameChatBtn">Rename</button>
+      <button class="nav-item subtle danger-text" id="deleteChatBtn">Delete</button>
+
+      <div class="profile">
+        <div class="profile-avatar">DR</div>
+        <div>
+          <div class="profile-name">Dr. Pharmacist</div>
+          <div class="profile-role">Lead Clinical RPh</div>
+        </div>
+      </div>
     </aside>
 
-    <main class="main">
+    <main class="chat-area">
       <header class="topbar">
         <div>
-          <div class="page-title">Nexus AI Pharmacist</div>
-          <div class="page-subtitle">Ask naturally. Use @ for focused modes.</div>
+          <div class="page-title">Nexus Rx Chat Interface</div>
+          <div class="page-subtitle">Clinical answers. Clean notes. No noise.</div>
         </div>
-        <div class="top-actions">
-          <button id="pinChatBtn" class="secondary-btn">Pin</button>
-          <button id="renameChatBtn" class="secondary-btn">Rename</button>
-          <button id="deleteChatBtn" class="danger-btn">Delete</button>
-          <button id="exportPdfBtn" class="secondary-btn">Report PDF</button>
-        </div>
+        <button id="exportPdfBtn" class="outline-btn">Report PDF</button>
       </header>
 
       <section id="messages" class="messages"></section>
 
-      <section class="composer-wrap">
-        <div id="commandPalette" class="command-palette hidden">
-          <button data-command="@case "><b>@case</b><span>Analyze patient case</span></button>
-          <button data-command="@compare "><b>@compare</b><span>Compare two medicines</span></button>
-          <button data-command="@reverse "><b>@reverse</b><span>Reverse scenario simulation</span></button>
-          <button data-command="@report "><b>@report</b><span>Prepare editable report</span></button>
-        </div>
-
+      <section class="composer-zone">
         <form id="chatForm" class="composer">
-          <textarea id="messageInput" rows="1" placeholder="Message Nexus... try @compare ramipril losartan"></textarea>
-          <button id="sendBtn" type="submit" aria-label="Send message">↑</button>
+          <textarea id="messageInput" rows="1" placeholder="Ask about a drug, interaction, protocol, or patient case..."></textarea>
+          <button id="sendBtn" type="submit" aria-label="Send">➤</button>
         </form>
-        <div class="composer-hint">اكتب <b>@</b> لفتح الأوامر · Ctrl/⌘ + Enter للإرسال</div>
+        <div class="footer-note">Nexus Rx can make mistakes. Verify clinical information with primary sources.</div>
       </section>
     </main>
   </div>
@@ -75,14 +76,14 @@
     <div class="modal-card">
       <div class="modal-header">
         <div>
-          <div class="modal-title">Editable report preview</div>
-          <div class="modal-subtitle">عدّل أو احذف أي جزء قبل التصدير</div>
+          <div class="modal-title">Editable Report Preview</div>
+          <div class="modal-subtitle">Edit before exporting</div>
         </div>
-        <button id="closePdfModal" class="ghost-btn">Close</button>
+        <button id="closePdfModal" class="outline-btn">Close</button>
       </div>
       <textarea id="pdfEditor" class="pdf-editor"></textarea>
       <div class="modal-actions">
-        <button id="downloadPdfBtn" class="primary-btn">Download PDF</button>
+        <button id="downloadPdfBtn" class="new-btn">Download PDF</button>
       </div>
     </div>
   </div>
