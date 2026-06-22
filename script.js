@@ -530,8 +530,8 @@ function createMessageNode(role, content, options = {}) {
   const body = document.createElement("div");
   body.className = "message-content";
 
-  const related = role === "assistant" ? extractRelatedQuestions(content) : [];
-  const cleanContent = role === "assistant" ? stripRelatedQuestions(content) : content;
+  const related = role === "assistant" ? ensureRelatedQuestions(content) : [];
+  const cleanContent = role === "assistant" ? cleanAssistantVisibleContent(content) : content;
   body.innerHTML = role === "assistant" ? renderMarkdown(cleanContent) : escapeHtml(content).replace(/\n/g, "<br>");
 
   if (options.attachments?.length && role === "user") {
@@ -624,12 +624,87 @@ function stripRelatedQuestions(text = "") {
   return String(text || "").replace(/(?:^|\n)#{0,3}\s*(?:Related questions|Follow-up questions|Suggested questions|أسئلة مقترحة|أسئلة متابعة)\s*:?\s*\n[\s\S]*$/i, "").trim();
 }
 
+
+function stripGenericClosers(text = "") {
+  let source = String(text || "").trim();
+  const closerPatterns = [
+    /\n+\s*(?:Do you have|Could you share|Can you share|Would you like|Need more detail|If you want)[^\n?؟]*(?:\?|\؟)?\s*$/i,
+    /\n+\s*(?:هل لديك|هل عندك|هل تحتاج|تحب|لو عايز|ممكن تبعت)[^\n?؟]*(?:\?|\؟)?\s*$/i,
+    /\n+\s*(?:Do you want me to|Can I help with anything else)[^\n?؟]*(?:\?|\؟)?\s*$/i
+  ];
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const pattern of closerPatterns) {
+      const next = source.replace(pattern, "").trim();
+      if (next !== source) {
+        source = next;
+        changed = true;
+      }
+    }
+  }
+  return source;
+}
+
+function cleanAssistantVisibleContent(text = "") {
+  return stripGenericClosers(stripRelatedQuestions(text));
+}
+
+function ensureRelatedQuestions(text = "") {
+  const extracted = extractRelatedQuestions(text);
+  if (extracted.length >= 3) return extracted.slice(0, 3);
+  const fallback = buildFallbackRelatedQuestions(text);
+  const merged = [];
+  [...extracted, ...fallback].forEach(question => {
+    const q = String(question || "").trim();
+    if (q && !merged.some(x => x.toLowerCase() === q.toLowerCase())) merged.push(q);
+  });
+  return merged.slice(0, 3);
+}
+
+function buildFallbackRelatedQuestions(text = "") {
+  const t = String(text || "").toLowerCase();
+  if (/warfarin|amiodarone|inr|bleeding/.test(t)) {
+    return [
+      "What is the patient’s current INR and any bleeding symptoms?",
+      "How should INR be monitored after starting amiodarone?",
+      "Are there NSAIDs, antiplatelets, liver disease, or older age increasing bleeding risk?"
+    ];
+  }
+  if (/ramipril|ace inhibitor|potassium|hyperkalemia|k\+/.test(t)) {
+    return [
+      "What are the latest serum potassium and creatinine/eGFR results?",
+      "Why is the patient taking the potassium supplement?",
+      "Are there NSAIDs, spironolactone, trimethoprim, or CKD increasing hyperkalemia risk?"
+    ];
+  }
+  if (/triple whammy|diclofenac|furosemide|aki|renal|kidney/.test(t)) {
+    return [
+      "Does the patient have CKD, dehydration, vomiting, diarrhea, or heart failure?",
+      "What are the baseline and follow-up creatinine/eGFR and potassium values?",
+      "What safer analgesic options fit this patient’s condition?"
+    ];
+  }
+  if (/dizziness|دوخة|orthostatic|blood pressure|ضغط/.test(t)) {
+    return [
+      "What are the sitting and standing BP/HR readings?",
+      "Which antihypertensive drug and dose is the patient taking?",
+      "Are there red flags such as syncope, chest pain, stroke symptoms, or severe hypotension?"
+    ];
+  }
+  return [
+    "Which medication, dose, and patient factors should be reviewed?",
+    "Do you want a drug interaction check or a full case analysis?",
+    "What labs, symptoms, and comorbidities are available?"
+  ];
+}
+
 function createRelatedQuestionsNode(questions = []) {
   const wrap = document.createElement("div");
   wrap.className = "related-questions";
   const title = document.createElement("div");
   title.className = "related-title";
-  title.textContent = "Related questions";
+  title.textContent = "Suggested next questions";
   wrap.appendChild(title);
   questions.slice(0, 3).forEach(question => {
     const btn = document.createElement("button");
@@ -854,7 +929,7 @@ async function streamAssistantReply(conversation) {
         }
         buffer += chunk;
         assistantMessage.content = buffer;
-        assistantBody.innerHTML = renderMarkdown(stripRelatedQuestions(buffer));
+        assistantBody.innerHTML = renderMarkdown(cleanAssistantVisibleContent(buffer));
         scrollToBottom();
       }
     } else {
@@ -887,8 +962,8 @@ async function streamAssistantReply(conversation) {
 }
 
 function finalizeAssistantNode(body, message) {
-  const related = extractRelatedQuestions(message.content);
-  body.innerHTML = renderMarkdown(stripRelatedQuestions(message.content));
+  const related = ensureRelatedQuestions(message.content);
+  body.innerHTML = renderMarkdown(cleanAssistantVisibleContent(message.content));
   if (related.length) body.appendChild(createRelatedQuestionsNode(related));
   if (message.thinkingTime) {
     const thinking = document.createElement("div");

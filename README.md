@@ -1,3 +1,7 @@
+# Nexus Clinical Pharmacist v4.3
+
+Polish update: removes generic final follow-up questions, guarantees 3 suggested next-question chips even if the model forgets them, and keeps the medical-only scope guard.
+
 # Nexus Clinical Pharmacist UI Rebuild
 
 A clean ChatGPT-inspired professional chat workspace with:
@@ -199,26 +203,3 @@ vercel dev
 ## v3 responsive note
 
 This version switches into the compact shell earlier, so the mobile-style layout is triggered at normal 100% browser zoom on laptop/mobile preview tools. You should not need to zoom to 200% to make the layout behave.
-
-## v4.2 Polish Update
-
-Added:
-
-- Medical/pharmacy scope guard: Nexus refuses non-medical questions and redirects the user to clinical/pharmacy use.
-- Related question suggestions after each assistant answer: exactly 3 contextual next questions.
-- Message rail/minimap on the right side of the chat for quick navigation between messages.
-- Copy button for user and assistant messages.
-- Edit button for user messages: edits a sent message and regenerates the conversation from that point.
-- Cleaner callout UI with icons and improved inline markdown rendering inside callouts.
-- Better message action UI and mobile-safe controls.
-
-Recommended env:
-
-```env
-NVIDIA_API_KEY=your_key_here
-NVIDIA_API_URL=https://integrate.api.nvidia.com/v1/chat/completions
-NVIDIA_MODEL=moonshotai/kimi-k2.6
-NVIDIA_MAX_TOKENS=850
-NEXUS_FAST_LOCAL_FIRST=true
-NEXUS_COMPOSER_TIMEOUT_MS=25000
-```
