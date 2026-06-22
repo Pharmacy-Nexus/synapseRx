@@ -55,6 +55,7 @@ const els = {
   activeModePill: document.getElementById("activeModePill"),
   conversationTitle: document.getElementById("conversationTitle"),
   messages: document.getElementById("messages"),
+  messageRail: document.getElementById("messageRail"),
   chatForm: document.getElementById("chatForm"),
   messageInput: document.getElementById("messageInput"),
   sendBtn: document.getElementById("sendBtn"),
@@ -78,7 +79,8 @@ let state = {
   abortController: null,
   isGenerating: false,
   readOnlyShare: false,
-  dropdown: null
+  dropdown: null,
+  editingMessageIndex: null
 };
 
 function nowIso() {
@@ -459,6 +461,7 @@ function renderCurrentConversation() {
 
   if (!conversation) {
     inner.appendChild(welcomeNode());
+    renderMessageRail();
     return;
   }
 
@@ -466,15 +469,18 @@ function renderCurrentConversation() {
   els.activeModePill.textContent = MODE_META[conversation.mode]?.label || MODE_META[state.activeMode]?.label || MODE_META.general_chat.label;
   if (!conversation.messages.length) {
     inner.appendChild(welcomeNode());
+    renderMessageRail();
   } else {
-    conversation.messages.forEach(message => {
+    conversation.messages.forEach((message, index) => {
       inner.appendChild(createMessageNode(message.role, message.content, {
         mode: message.mode,
         thinkingTime: message.thinkingTime,
-        attachments: message.attachments || []
+        attachments: message.attachments || [],
+        index
       }));
     });
   }
+  renderMessageRail();
   scrollToBottom();
 }
 
@@ -515,6 +521,7 @@ function welcomeNode() {
 function createMessageNode(role, content, options = {}) {
   const row = document.createElement("div");
   row.className = `message-row ${role}`;
+  if (Number.isInteger(options.index)) row.dataset.messageIndex = String(options.index);
 
   const meta = document.createElement("div");
   meta.className = "message-meta";
@@ -522,7 +529,10 @@ function createMessageNode(role, content, options = {}) {
 
   const body = document.createElement("div");
   body.className = "message-content";
-  body.innerHTML = role === "assistant" ? renderMarkdown(content) : escapeHtml(content).replace(/\n/g, "<br>");
+
+  const related = role === "assistant" ? extractRelatedQuestions(content) : [];
+  const cleanContent = role === "assistant" ? stripRelatedQuestions(content) : content;
+  body.innerHTML = role === "assistant" ? renderMarkdown(cleanContent) : escapeHtml(content).replace(/\n/g, "<br>");
 
   if (options.attachments?.length && role === "user") {
     const files = document.createElement("div");
@@ -536,11 +546,33 @@ function createMessageNode(role, content, options = {}) {
     body.appendChild(files);
   }
 
+  if (role === "assistant" && related.length) {
+    body.appendChild(createRelatedQuestionsNode(related));
+  }
+
   if (role === "assistant" && options.thinkingTime) {
     const thinking = document.createElement("div");
     thinking.className = "thinking-time";
     thinking.textContent = `Thinking time: ${options.thinkingTime.toFixed(1)}s`;
     body.prepend(thinking);
+  }
+
+  const actions = document.createElement("div");
+  actions.className = "message-actions";
+  const copyBtn = document.createElement("button");
+  copyBtn.type = "button";
+  copyBtn.className = "message-action-btn";
+  copyBtn.textContent = "Copy";
+  copyBtn.addEventListener("click", () => copyMessageText(role === "assistant" ? (row.querySelector(".message-content")?.innerText || cleanContent) : cleanContent));
+  actions.appendChild(copyBtn);
+
+  if (role === "user" && Number.isInteger(options.index) && !state.readOnlyShare) {
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.className = "message-action-btn";
+    editBtn.textContent = "Edit";
+    editBtn.addEventListener("click", () => startEditMessage(options.index));
+    actions.appendChild(editBtn);
   }
 
   if (role === "assistant") {
@@ -552,7 +584,85 @@ function createMessageNode(role, content, options = {}) {
 
   row.appendChild(meta);
   row.appendChild(body);
+  row.appendChild(actions);
   return row;
+}
+
+function copyMessageText(text) {
+  navigator.clipboard.writeText(String(text || "").trim()).then(
+    () => showToast("Copied"),
+    () => showToast("Copy failed")
+  );
+}
+
+function startEditMessage(index) {
+  const conversation = currentConversation();
+  if (!conversation || state.isGenerating || state.readOnlyShare) return;
+  const message = conversation.messages[index];
+  if (!message || message.role !== "user") return;
+  state.editingMessageIndex = index;
+  els.messageInput.value = message.content || "";
+  autoGrow(els.messageInput);
+  els.messageInput.focus();
+  document.body.classList.add("editing-message");
+  showToast("Editing message — send to regenerate from here");
+}
+
+function extractRelatedQuestions(text = "") {
+  const source = String(text || "");
+  const match = source.match(/(?:^|\n)#{0,3}\s*(?:Related questions|Follow-up questions|Suggested questions|أسئلة مقترحة|أسئلة متابعة)\s*:?\s*\n([\s\S]*)$/i);
+  if (!match) return [];
+  return match[1]
+    .split(/\n+/)
+    .map(line => line.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "").trim())
+    .filter(Boolean)
+    .filter(line => !/^(sources used|confidence)\s*:?/i.test(line))
+    .slice(0, 3);
+}
+
+function stripRelatedQuestions(text = "") {
+  return String(text || "").replace(/(?:^|\n)#{0,3}\s*(?:Related questions|Follow-up questions|Suggested questions|أسئلة مقترحة|أسئلة متابعة)\s*:?\s*\n[\s\S]*$/i, "").trim();
+}
+
+function createRelatedQuestionsNode(questions = []) {
+  const wrap = document.createElement("div");
+  wrap.className = "related-questions";
+  const title = document.createElement("div");
+  title.className = "related-title";
+  title.textContent = "Related questions";
+  wrap.appendChild(title);
+  questions.slice(0, 3).forEach(question => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "related-chip";
+    btn.textContent = question;
+    btn.addEventListener("click", () => {
+      els.messageInput.value = question;
+      autoGrow(els.messageInput);
+      els.messageInput.focus();
+    });
+    wrap.appendChild(btn);
+  });
+  return wrap;
+}
+
+function renderMessageRail() {
+  if (!els.messageRail) return;
+  const conversation = currentConversation();
+  els.messageRail.innerHTML = "";
+  const messages = conversation?.messages || [];
+  if (messages.length < 2) return;
+  messages.slice(-34).forEach((message, visibleIndex) => {
+    const absoluteIndex = messages.length > 34 ? messages.length - 34 + visibleIndex : visibleIndex;
+    const segment = document.createElement("button");
+    segment.type = "button";
+    segment.className = `rail-segment ${message.role}`;
+    segment.title = `${message.role === "assistant" ? "Nexus" : "You"} message ${absoluteIndex + 1}`;
+    segment.addEventListener("click", () => {
+      document.querySelector(`[data-message-index="${absoluteIndex}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    els.messageRail.appendChild(segment);
+  });
 }
 
 function renderMarkdown(text = "") {
@@ -569,9 +679,13 @@ function renderMarkdown(text = "") {
 }
 
 function normalizeClinicalCallouts(source = "") {
+  const inlineMarkdown = (value = "") => escapeHtml(String(value || "").trim())
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+
   const make = (type, body) => {
     const cleanType = String(type || "INFO").toUpperCase();
-    const cleanBody = escapeHtml(String(body || "").trim());
+    const cleanBody = inlineMarkdown(body);
     return `<div class="callout callout-${cleanType.toLowerCase()}"><strong>${cleanType}</strong><span>${cleanBody}</span></div>`;
   };
 
@@ -605,6 +719,12 @@ async function sendMessage(event) {
 
   const attachments = await buildAttachmentPayloads(state.pendingFiles);
   const userContent = text || "[Attached files for case analysis]";
+
+  if (Number.isInteger(state.editingMessageIndex)) {
+    conversation.messages = conversation.messages.slice(0, state.editingMessageIndex);
+    state.editingMessageIndex = null;
+    document.body.classList.remove("editing-message");
+  }
 
   const userMessage = {
     role: "user",
@@ -734,7 +854,7 @@ async function streamAssistantReply(conversation) {
         }
         buffer += chunk;
         assistantMessage.content = buffer;
-        assistantBody.innerHTML = renderMarkdown(buffer);
+        assistantBody.innerHTML = renderMarkdown(stripRelatedQuestions(buffer));
         scrollToBottom();
       }
     } else {
@@ -767,7 +887,9 @@ async function streamAssistantReply(conversation) {
 }
 
 function finalizeAssistantNode(body, message) {
-  body.innerHTML = renderMarkdown(message.content);
+  const related = extractRelatedQuestions(message.content);
+  body.innerHTML = renderMarkdown(stripRelatedQuestions(message.content));
+  if (related.length) body.appendChild(createRelatedQuestionsNode(related));
   if (message.thinkingTime) {
     const thinking = document.createElement("div");
     thinking.className = "thinking-time";
