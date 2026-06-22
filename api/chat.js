@@ -2,7 +2,10 @@ const fs = require("fs");
 const path = require("path");
 
 const API_URL = process.env.NVIDIA_API_URL || "https://integrate.api.nvidia.com/v1/chat/completions";
-const MODEL = process.env.NVIDIA_MODEL || "moonshotai/kimi-k2.6";
+const MODEL = process.env.NVIDIA_MODEL || "deepseek-ai/deepseek-v4-flash";
+const COMPOSER_TIMEOUT_MS = Number(process.env.NEXUS_COMPOSER_TIMEOUT_MS || 25000);
+const PARSER_TIMEOUT_MS = Number(process.env.NEXUS_PARSER_TIMEOUT_MS || 10000);
+const FAST_LOCAL_FIRST = process.env.NEXUS_FAST_LOCAL_FIRST !== "false";
 
 const MODE_LABELS = {
   general_chat: "General Chat",
@@ -196,9 +199,21 @@ function inferMissingInfo(parsed) {
   return Array.from(missing);
 }
 
+
+function isClearLocalClinicalQuestion(local, text = "") {
+  const lower = String(text).toLowerCase();
+  const drugs = Array.isArray(local.drugs) ? local.drugs : [];
+  const hasKnownInteractionPair = (DATA.interactions || []).some(record => includesAll(drugs, record.drugs || []));
+  const hasStrongClinicalSignal = /interaction|interact|contraindication|combine|together|safe with|with|patient|case|year-old|serum|creatinine|egfr|potassium|warfarin|amiodarone|مريض|حالة|تحاليل|ينفع|تداخل|تفاعل|مع بعض|كرياتينين|بوتاسيوم/i.test(lower);
+  return FAST_LOCAL_FIRST && drugs.length >= 2 && (hasKnownInteractionPair || hasStrongClinicalSignal);
+}
+
 async function parseQuestionWithAI({ text, mode, attachments }) {
   const fallback = localParseQuestion(text, mode);
   if (!process.env.NVIDIA_API_KEY) return fallback;
+  if (isClearLocalClinicalQuestion(fallback, text)) {
+    return { ...fallback, parser: "local_fast_path", confidence: Math.max(fallback.confidence || 0, 0.9) };
+  }
 
   const system = `You are a strict clinical question parser. Return ONLY valid compact JSON. No Markdown.
 Schema:
@@ -473,7 +488,10 @@ Global rules:
 - Use the retrieved local evidence and explicitly mention uncertainty when evidence is incomplete.
 - Memory/conversation style never overrides retrieved safety rules.
 - For clinical content, be practical, conservative, and pharmacist-focused.
-- Use Markdown. Tables are allowed when useful.
+- Use Markdown, but keep the default answer concise.
+- Do not use ASCII diagrams, arrow diagrams, terminal-style blocks, or code blocks in clinical explanations unless the user explicitly asks for code.
+- Use short paragraphs or bullet points for mechanisms.
+- Avoid large tables unless they genuinely reduce confusion.
 - Use callouts exactly like: > [!WARNING] text, > [!IMPORTANT] text, > [!INFO] text.
 - If safety_validation.mandatoryActions contains actions, you must satisfy them.
 - End clinical answers with: Sources used + Confidence.
@@ -481,8 +499,8 @@ Global rules:
 
   const modePrompts = {
     general_chat: `For General Chat: answer naturally. If no clinical issue exists, do not force clinical headings.`,
-    case_analysis: `For Case Analysis, prefer headings: Case Summary, Key Risks, Missing Information, Recommendations, Monitoring / Follow-up, Counseling, Sources used, Confidence.`,
-    drug_interaction: `For Drug Interaction, prefer headings: Interaction Summary, Severity, Mechanism, Clinical Risk, What to Check, Recommendation, Counseling, Sources used, Confidence. Always handle all detected pairwise interactions.`,
+    case_analysis: `For Case Analysis, keep the default response brief. Use headings: Summary, Risk Level, Missing Information, Recommendation, Monitoring, Sources used, Confidence. Offer to expand into a full report only if needed.`,
+    drug_interaction: `For Drug Interaction, keep the default response brief. Use headings: Summary, Risk Level, Why it matters, Missing Information, Recommendation, Sources used, Confidence. Always handle all detected pairwise interactions.`,
     drug_reverse: `For Drug Reverse Interactive Training: keep it interactive. Do not reveal everything at once. Use the pipeline evidence to create one focused clue/question, then wait for the user's answer.`
   };
 
@@ -491,14 +509,17 @@ Global rules:
 
 async function callFinalModel({ mode, modeInstruction, messages, pipelineContext, attachments, shouldStream }) {
   const contextText = JSON.stringify(pipelineContext, null, 2);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), COMPOSER_TIMEOUT_MS);
   const apiMessages = [
     { role: "system", content: buildComposerSystemPrompt(mode, modeInstruction) },
     { role: "system", content: `PIPELINE CONTEXT JSON:\n${contextText}${attachments}` },
     ...normalizeMessages(messages)
   ];
 
-  return fetch(API_URL, {
+  const request = fetch(API_URL, {
     method: "POST",
+    signal: controller.signal,
     headers: {
       Authorization: `Bearer ${process.env.NVIDIA_API_KEY}`,
       "Content-Type": "application/json",
@@ -507,12 +528,13 @@ async function callFinalModel({ mode, modeInstruction, messages, pipelineContext
     body: JSON.stringify({
       model: MODEL,
       messages: apiMessages,
-      max_tokens: Number(process.env.NVIDIA_MAX_TOKENS || 2200),
+      max_tokens: Number(process.env.NVIDIA_MAX_TOKENS || 850),
       temperature: Number(process.env.NVIDIA_TEMPERATURE || 0.2),
       top_p: Number(process.env.NVIDIA_TOP_P || 0.9),
       stream: shouldStream
     })
-  });
+  }).finally(() => clearTimeout(timeout));
+  return request;
 }
 
 async function relayNvidiaStream(upstream, res) {
@@ -556,6 +578,56 @@ async function relayNvidiaStream(upstream, res) {
   res.end();
 }
 
+
+function localFallbackAnswer({ mode, parsed, evidence, triage, validation }) {
+  const lines = [];
+  const drugs = (parsed.drugs || []).join(" + ") || "the provided medicines";
+  const interaction = (evidence.interactions || [])[0];
+  const sources = (evidence.sources || []).join("\n- ");
+
+  lines.push(`## Summary`);
+  if (interaction) {
+    lines.push(`${drugs}: ${interaction.risk || "clinically relevant risk detected"}.`);
+  } else if ((parsed.drugs || []).length) {
+    lines.push(`I found the following medicine(s): ${drugs}. Local evidence is limited, so the answer is conservative.`);
+  } else {
+    lines.push(`I could not complete the AI-composed answer in time. Here is a safe local summary.`);
+  }
+
+  lines.push(`\n> [!WARNING] Risk level: ${triage.level}. Do not use this as a final clinical decision without confirming patient-specific data.`);
+
+  if (interaction) {
+    lines.push(`\n## Why it matters`);
+    lines.push(`- Severity: ${interaction.severity || "not specified"}`);
+    if (interaction.mechanism) lines.push(`- Mechanism: ${interaction.mechanism}`);
+    if (interaction.recommendation) lines.push(`- Recommendation: ${interaction.recommendation}`);
+  }
+
+  if ((parsed.missingCriticalInfo || []).length) {
+    lines.push(`\n## Missing Information`);
+    for (const item of parsed.missingCriticalInfo) lines.push(`- ${item}`);
+  }
+
+  if ((validation.mandatoryActions || []).length) {
+    lines.push(`\n## Safety Actions`);
+    for (const item of validation.mandatoryActions.slice(0, 5)) lines.push(`- ${item}`);
+  }
+
+  lines.push(`\n## Sources used`);
+  lines.push(sources ? `- ${sources}` : `- No matching local source was found.`);
+  lines.push(`\nConfidence: ${evidence.sources?.length ? "Moderate to high from local rules; patient-specific certainty depends on missing data." : "Low due to limited matched evidence."}`);
+  lines.push(`\n> [!INFO] AI composer timed out after ${Math.round(COMPOSER_TIMEOUT_MS / 1000)}s, so Nexus showed a local safety summary instead.`);
+  return lines.join("\n");
+}
+
+function sendPlainText(res, text, status = 200) {
+  res.writeHead(status, {
+    "Content-Type": "text/plain; charset=utf-8",
+    "Cache-Control": "no-cache, no-transform"
+  });
+  res.end(text);
+}
+
 module.exports = async (req, res) => {
   setCors(res);
 
@@ -585,14 +657,26 @@ module.exports = async (req, res) => {
     const pipelineContext = compactPipelineContext({ mode, parsed, evidence, triage, validation, conflictResolver });
 
     const shouldStream = body.stream !== false;
-    const upstream = await callFinalModel({
-      mode,
-      modeInstruction: body.modeInstruction,
-      messages,
-      pipelineContext,
-      attachments,
-      shouldStream
-    });
+    let upstream;
+    try {
+      upstream = await callFinalModel({
+        mode,
+        modeInstruction: body.modeInstruction,
+        messages,
+        pipelineContext,
+        attachments,
+        shouldStream
+      });
+    } catch (error) {
+      if (error.name === "AbortError") {
+        const fallbackReply = localFallbackAnswer({ mode, parsed, evidence, triage, validation });
+        res.setHeader("X-Nexus-Mode", mode);
+        res.setHeader("X-Nexus-Risk", triage.level);
+        res.setHeader("X-Nexus-Fallback", "composer_timeout");
+        return shouldStream ? sendPlainText(res, fallbackReply) : res.status(200).json({ mode, risk: triage.level, reply: fallbackReply, fallback: "composer_timeout" });
+      }
+      throw error;
+    }
 
     if (!upstream.ok) {
       const errorText = await upstream.text();
