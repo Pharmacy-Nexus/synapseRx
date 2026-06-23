@@ -1,7 +1,3 @@
-# Nexus Clinical Pharmacist v4.3
-
-Polish update: removes generic final follow-up questions, guarantees 3 suggested next-question chips even if the model forgets them, and keeps the medical-only scope guard.
-
 # Nexus Clinical Pharmacist UI Rebuild
 
 A clean ChatGPT-inspired professional chat workspace with:
@@ -203,3 +199,35 @@ vercel dev
 ## v3 responsive note
 
 This version switches into the compact shell earlier, so the mobile-style layout is triggered at normal 100% browser zoom on laptop/mobile preview tools. You should not need to zoom to 200% to make the layout behave.
+
+
+## v4.4 hotfix
+
+- Related question chips are now AI prompts, not patient-data questions.
+- Follow-up turns can inherit drug context from the previous conversation when the user asks about INR, bleeding, monitoring, labs, etc.
+- Streaming now has an empty-response fallback so the UI should not display “No response returned.”
+- Default model is back to `moonshotai/kimi-k2.6`.
+
+## v4.5 UX + Mode Control Update
+
+What changed:
+
+- Streaming now uses a client-side typewriter queue, so even if the API returns a large chunk, the answer appears progressively instead of popping in at once.
+- General Chat is now respected. If the user selects General Chat, the backend no longer silently switches the turn into Case Analysis or Drug Interaction.
+- Medical/pharmacy scope guard remains active: non-medical questions are refused politely.
+- Message rail added beside the chat: hover shows a preview and click scrolls to the target message with a highlight.
+- New Chat now closes the mobile sidebar automatically and focuses the input.
+- Sidebar cleaned up with a more compact mode/tools section and tighter chat history.
+- Premium font stack changed to Manrope + IBM Plex Sans Arabic for better Arabic/English readability.
+- Thinking state now has an animated Nexus orb next to the timer.
+
+Recommended Vercel env:
+
+```env
+NVIDIA_API_KEY=your_key_here
+NVIDIA_API_URL=https://integrate.api.nvidia.com/v1/chat/completions
+NVIDIA_MODEL=moonshotai/kimi-k2.6
+NVIDIA_MAX_TOKENS=850
+NEXUS_FAST_LOCAL_FIRST=true
+NEXUS_COMPOSER_TIMEOUT_MS=25000
+```
