@@ -9,7 +9,7 @@ const supabase = HAS_SUPABASE ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : 
 const MODE_META = {
   general_chat: {
     label: "General Chat",
-    prompt: "Answer normally without forcing a clinical tool. If the user asks a clinical/pharmacy question, stay practical and structured, but do not over-format unless needed."
+    prompt: "Answer like a normal medical/pharmacy chat. Do not force case-analysis headings unless the user explicitly asks for a case, interaction check, or structured clinical assessment."
   },
   case_analysis: {
     label: "Case Analysis",
@@ -360,7 +360,11 @@ async function createNewConversation(render = true) {
 
   const selected = currentConversation();
   selectMode(selected?.mode || state.activeMode, false);
-  if (render) renderAll();
+  if (render) {
+    renderAll();
+    closeSidebarMobile();
+    setTimeout(() => els.messageInput.focus(), 50);
+  }
 }
 
 async function deleteConversation(conversation) {
@@ -666,36 +670,36 @@ function buildFallbackRelatedQuestions(text = "") {
   const t = String(text || "").toLowerCase();
   if (/warfarin|amiodarone|inr|bleeding/.test(t)) {
     return [
-      "What is the patient’s current INR and any bleeding symptoms?",
-      "How should INR be monitored after starting amiodarone?",
-      "Are there NSAIDs, antiplatelets, liver disease, or older age increasing bleeding risk?"
+      "Explain the INR monitoring plan after starting amiodarone with warfarin.",
+      "What bleeding symptoms require urgent referral in a patient on warfarin?",
+      "Which factors increase bleeding risk with warfarin and amiodarone?"
     ];
   }
   if (/ramipril|ace inhibitor|potassium|hyperkalemia|k\+/.test(t)) {
     return [
-      "What are the latest serum potassium and creatinine/eGFR results?",
-      "Why is the patient taking the potassium supplement?",
-      "Are there NSAIDs, spironolactone, trimethoprim, or CKD increasing hyperkalemia risk?"
+      "Explain how to monitor potassium and renal function with ACE inhibitors.",
+      "When is potassium supplementation appropriate with ramipril?",
+      "Which medicines increase hyperkalemia risk with ACE inhibitors?"
     ];
   }
   if (/triple whammy|diclofenac|furosemide|aki|renal|kidney/.test(t)) {
     return [
-      "Does the patient have CKD, dehydration, vomiting, diarrhea, or heart failure?",
-      "What are the baseline and follow-up creatinine/eGFR and potassium values?",
-      "What safer analgesic options fit this patient’s condition?"
+      "Explain the triple whammy mechanism and why AKI risk increases.",
+      "What monitoring is needed after starting an NSAID in this combination?",
+      "What safer analgesic options can be considered for this patient?"
     ];
   }
   if (/dizziness|دوخة|orthostatic|blood pressure|ضغط/.test(t)) {
     return [
-      "What are the sitting and standing BP/HR readings?",
-      "Which antihypertensive drug and dose is the patient taking?",
-      "Are there red flags such as syncope, chest pain, stroke symptoms, or severe hypotension?"
+      "How should orthostatic blood pressure be checked in this patient?",
+      "Which antihypertensive classes commonly cause dizziness?",
+      "What red flags make dizziness on blood pressure medicines urgent?"
     ];
   }
   return [
-    "Which medication, dose, and patient factors should be reviewed?",
-    "Do you want a drug interaction check or a full case analysis?",
-    "What labs, symptoms, and comorbidities are available?"
+    "Check a medication interaction and explain the mechanism.",
+    "Analyze a patient case using available labs and symptoms.",
+    "List the missing clinical information needed for a safe recommendation."
   ];
 }
 
@@ -721,23 +725,69 @@ function createRelatedQuestionsNode(questions = []) {
   return wrap;
 }
 
+function compactPreview(text = "", max = 84) {
+  return String(text || "")
+    .replace(/#+\s*/g, "")
+    .replace(/\[[!A-Z]+\]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max) || "Empty message";
+}
+
+function setActiveRailSegment(index) {
+  if (!els.messageRail) return;
+  els.messageRail.querySelectorAll(".rail-segment").forEach(segment => {
+    segment.classList.toggle("active", Number(segment.dataset.targetIndex) === Number(index));
+  });
+}
+
+function updateActiveRailFromViewport() {
+  if (!els.messageRail) return;
+  const rows = Array.from(document.querySelectorAll(".message-row[data-message-index]"));
+  if (!rows.length) return;
+  const containerRect = els.messages.getBoundingClientRect();
+  const anchor = containerRect.top + containerRect.height * 0.38;
+  let best = rows[0];
+  let bestDistance = Infinity;
+  rows.forEach(row => {
+    const rect = row.getBoundingClientRect();
+    const center = rect.top + rect.height / 2;
+    const distance = Math.abs(center - anchor);
+    if (distance < bestDistance) {
+      best = row;
+      bestDistance = distance;
+    }
+  });
+  setActiveRailSegment(best.dataset.messageIndex);
+}
+
 function renderMessageRail() {
   if (!els.messageRail) return;
   const conversation = currentConversation();
   els.messageRail.innerHTML = "";
   const messages = conversation?.messages || [];
   if (messages.length < 2) return;
-  messages.slice(-34).forEach((message, visibleIndex) => {
-    const absoluteIndex = messages.length > 34 ? messages.length - 34 + visibleIndex : visibleIndex;
+  messages.slice(-42).forEach((message, visibleIndex) => {
+    const absoluteIndex = messages.length > 42 ? messages.length - 42 + visibleIndex : visibleIndex;
     const segment = document.createElement("button");
     segment.type = "button";
     segment.className = `rail-segment ${message.role}`;
-    segment.title = `${message.role === "assistant" ? "Nexus" : "You"} message ${absoluteIndex + 1}`;
+    segment.dataset.targetIndex = String(absoluteIndex);
+    segment.dataset.tooltip = `${message.role === "assistant" ? "Nexus" : "You"}: ${compactPreview(message.content)}`;
+    segment.setAttribute("aria-label", segment.dataset.tooltip);
     segment.addEventListener("click", () => {
-      document.querySelector(`[data-message-index="${absoluteIndex}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      const target = document.querySelector(`[data-message-index="${absoluteIndex}"]`);
+      if (!target) return;
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      target.classList.remove("jump-highlight");
+      void target.offsetWidth;
+      target.classList.add("jump-highlight");
+      setActiveRailSegment(absoluteIndex);
+      setTimeout(() => target.classList.remove("jump-highlight"), 1200);
     });
     els.messageRail.appendChild(segment);
   });
+  updateActiveRailFromViewport();
 }
 
 function renderMarkdown(text = "") {
@@ -872,8 +922,8 @@ async function streamAssistantReply(conversation) {
   const assistantBody = assistantRow.querySelector(".message-content");
   assistantBody.innerHTML = `
     <div class="thinking-box">
-      <span class="loader-dots"><span></span><span></span><span></span></span>
-      <span>Thinking… <b id="thinkingCounter">0.0s</b></span>
+      <span class="thinking-orb"><span>Nx</span></span>
+      <span class="thinking-text">Thinking <span class="loader-dots"><span></span><span></span><span></span></span> <b id="thinkingCounter">0.0s</b></span>
     </div>
   `;
 
@@ -916,7 +966,40 @@ async function streamAssistantReply(conversation) {
     if (response.body && !contentType.includes("application/json")) {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let buffer = "";
+      let targetBuffer = "";
+      let displayedBuffer = "";
+      let typingTimer = null;
+
+      const renderDisplayed = () => {
+        assistantMessage.content = displayedBuffer;
+        assistantBody.innerHTML = renderMarkdown(cleanAssistantVisibleContent(displayedBuffer));
+        assistantBody.classList.add("streaming");
+        scrollToBottom();
+      };
+
+      const startTyping = () => {
+        if (typingTimer) return;
+        typingTimer = setInterval(() => {
+          const remaining = targetBuffer.length - displayedBuffer.length;
+          if (remaining <= 0) return;
+          const step = remaining > 900 ? 30 : remaining > 360 ? 16 : remaining > 120 ? 7 : 3;
+          displayedBuffer += targetBuffer.slice(displayedBuffer.length, displayedBuffer.length + step);
+          renderDisplayed();
+        }, 18);
+      };
+
+      const waitForTyping = () => new Promise(resolve => {
+        const waiter = setInterval(() => {
+          if (displayedBuffer.length >= targetBuffer.length) {
+            clearInterval(waiter);
+            if (typingTimer) {
+              clearInterval(typingTimer);
+              typingTimer = null;
+            }
+            resolve();
+          }
+        }, 20);
+      });
 
       while (true) {
         const { done, value } = await reader.read();
@@ -927,19 +1010,25 @@ async function streamAssistantReply(conversation) {
           assistantMessage.thinkingTime = (performance.now() - start) / 1000;
           assistantBody.innerHTML = "";
         }
-        buffer += chunk;
-        assistantMessage.content = buffer;
-        assistantBody.innerHTML = renderMarkdown(cleanAssistantVisibleContent(buffer));
-        scrollToBottom();
+        targetBuffer += chunk;
+        startTyping();
       }
+
+      await waitForTyping();
+      assistantBody.classList.remove("streaming");
+      assistantMessage.content = targetBuffer;
     } else {
       const data = await response.json();
-      assistantMessage.content = data.reply || "No response returned.";
+      assistantMessage.content = data.reply || "### Temporary response issue\nNexus did not receive text from the model for this turn. Please resend the question or choose a suggested clinical prompt below.";
       assistantMessage.thinkingTime = (performance.now() - start) / 1000;
+      assistantBody.classList.add("streaming");
       await typeText(assistantMessage.content, assistantBody, assistantMessage);
+      assistantBody.classList.remove("streaming");
     }
 
-    if (!assistantMessage.content.trim()) assistantMessage.content = "No response returned.";
+    if (!assistantMessage.content.trim()) {
+      assistantMessage.content = "### Temporary response issue\nNexus did not receive text from the model for this turn. Please resend the question or choose a suggested clinical prompt below.";
+    }
     finalizeAssistantNode(assistantBody, assistantMessage);
     await persistConversation(conversation, conversation);
   } catch (error) {
@@ -1244,7 +1333,11 @@ function bindEvents() {
   els.signupTab.addEventListener("click", () => setAuthMode("signup"));
   els.authForm.addEventListener("submit", handleAuthSubmit);
   els.logoutBtn.addEventListener("click", logout);
-  els.newChatBtn.addEventListener("click", () => createNewConversation(true));
+  els.newChatBtn.addEventListener("click", async () => {
+    await createNewConversation(true);
+    closeSidebarMobile();
+    setTimeout(() => els.messageInput.focus(), 80);
+  });
   els.themeToggleBtn.addEventListener("click", () => applyTheme(document.body.dataset.theme === "dark" ? "light" : "dark"));
   els.openSidebarBtn.addEventListener("click", openSidebarMobile);
   els.closeSidebarBtn.addEventListener("click", closeSidebarMobile);
@@ -1256,7 +1349,11 @@ function bindEvents() {
     renderAll();
   });
   document.querySelectorAll(".mode-btn").forEach(btn => {
-    btn.addEventListener("click", () => selectMode(btn.dataset.mode));
+    btn.addEventListener("click", () => {
+      selectMode(btn.dataset.mode);
+      closeSidebarMobile();
+      setTimeout(() => els.messageInput.focus(), 50);
+    });
   });
   els.chatForm.addEventListener("submit", sendMessage);
   els.messageInput.addEventListener("input", () => autoGrow(els.messageInput));
@@ -1275,6 +1372,10 @@ function bindEvents() {
   els.stopBtn.addEventListener("click", () => state.abortController?.abort());
   els.exportTopBtn.addEventListener("click", () => exportConversationPdf());
   els.shareTopBtn.addEventListener("click", () => shareConversation(currentConversation()));
+  els.messages.addEventListener("scroll", () => {
+    if (updateActiveRailFromViewport.raf) cancelAnimationFrame(updateActiveRailFromViewport.raf);
+    updateActiveRailFromViewport.raf = requestAnimationFrame(updateActiveRailFromViewport);
+  }, { passive: true });
   document.addEventListener("click", (event) => {
     if (state.dropdown && !event.target.closest(".dropdown") && !event.target.closest(".history-dots")) closeDropdown();
   });
