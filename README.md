@@ -1,227 +1,14 @@
-# Nexus Clinical Pharmacist UI Rebuild
+# Nexus Clinical Pharmacist — v4.6 UX Polish
 
-A clean ChatGPT-inspired professional chat workspace with:
+## What changed in v4.6
 
-- Login / Sign up UI
-- Optional Supabase Auth + database persistence
-- Local demo fallback when Supabase keys are empty
-- Responsive collapsible sidebar
-- Four modes: General Chat, Case Analysis, Drug Interaction, Drug Reverse
-- Chat history with auto-title from the first message, Pin, Rename, Export PDF, Share, Archive, Delete
-- Dark / Light mode
-- Markdown AI responses, callouts, tables, and code blocks
-- Streaming response UI + thinking timer
-- Stop Generating button
-- Auto-resizing input
-- File attachment UI for PDFs/images/text files
-- Cleaner PDF export using html2pdf.js for better visual formatting
+- Message rail previews now appear only on hover/focus, not permanently on the active message.
+- Active rail segment still shows the current position, but without a distracting floating message card.
+- PDF export blank-page issue fixed by rendering the PDF report inside the renderable page area instead of far off-screen.
+- PDF export now forces a white report background, waits for fonts to load, and strips suggested-question blocks from assistant content before export.
+- The PDF report has cleaner callout/table styling for clinical content.
 
----
-
-## Files
-
-```txt
-index.html
-style.css
-script.js
-api/chat.js
-vercel.json
-README.md
-```
-
----
-
-## 1) Vercel environment variables
-
-Set these in Vercel Project Settings → Environment Variables:
-
-```env
-NVIDIA_API_KEY=your_key_here
-NVIDIA_MODEL=moonshotai/kimi-k2.6
-NVIDIA_API_URL=https://integrate.api.nvidia.com/v1/chat/completions
-NVIDIA_MAX_TOKENS=1800
-NVIDIA_TEMPERATURE=0.25
-NVIDIA_TOP_P=0.9
-```
-
-If the frontend and API are both deployed on the same Vercel project, keep:
-
-```js
-window.NEXUS_API_ENDPOINT = "/api/chat";
-```
-
-If the frontend is hosted somewhere else, change it in `index.html`:
-
-```js
-window.NEXUS_API_ENDPOINT = "https://your-vercel-app.vercel.app/api/chat";
-```
-
----
-
-## 2) Supabase frontend config
-
-In `index.html`, fill these values:
-
-```js
-window.NEXUS_SUPABASE_URL = "https://YOUR_PROJECT.supabase.co";
-window.NEXUS_SUPABASE_ANON_KEY = "YOUR_PUBLIC_ANON_KEY";
-```
-
-If you leave them empty, the app still works in local demo mode using `localStorage`, but login/history will not sync across devices.
-
----
-
-## 3) Supabase SQL schema
-
-Open Supabase → SQL Editor → run this:
-
-```sql
-create table if not exists public.conversations (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  title text not null default 'New chat',
-  mode text not null default 'general_chat',
-  messages jsonb not null default '[]'::jsonb,
-  pinned boolean not null default false,
-  archived boolean not null default false,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-alter table public.conversations enable row level security;
-
-drop policy if exists "Users can read own conversations" on public.conversations;
-create policy "Users can read own conversations"
-on public.conversations for select
-using (auth.uid() = user_id);
-
-drop policy if exists "Users can insert own conversations" on public.conversations;
-create policy "Users can insert own conversations"
-on public.conversations for insert
-with check (auth.uid() = user_id);
-
-drop policy if exists "Users can update own conversations" on public.conversations;
-create policy "Users can update own conversations"
-on public.conversations for update
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
-
-drop policy if exists "Users can delete own conversations" on public.conversations;
-create policy "Users can delete own conversations"
-on public.conversations for delete
-using (auth.uid() = user_id);
-
-create index if not exists conversations_user_updated_idx
-on public.conversations (user_id, archived, pinned desc, updated_at desc);
-```
-
----
-
-## 4) Optional sharing table + RPC
-
-Run this too if you want the Share button to generate public read-only links:
-
-```sql
-create table if not exists public.conversation_shares (
-  id uuid primary key default gen_random_uuid(),
-  conversation_id uuid references public.conversations(id) on delete cascade,
-  owner_id uuid not null references auth.users(id) on delete cascade,
-  title text not null,
-  mode text not null default 'general_chat',
-  messages jsonb not null default '[]'::jsonb,
-  created_at timestamptz not null default now()
-);
-
-alter table public.conversation_shares enable row level security;
-
-drop policy if exists "Users can create own share snapshots" on public.conversation_shares;
-create policy "Users can create own share snapshots"
-on public.conversation_shares for insert
-with check (auth.uid() = owner_id);
-
-drop policy if exists "Users can read own share snapshots" on public.conversation_shares;
-create policy "Users can read own share snapshots"
-on public.conversation_shares for select
-using (auth.uid() = owner_id);
-
-drop function if exists public.get_shared_conversation(uuid);
-create or replace function public.get_shared_conversation(p_share_id uuid)
-returns table (
-  id uuid,
-  title text,
-  mode text,
-  messages jsonb,
-  created_at timestamptz
-)
-language sql
-security definer
-set search_path = public
-as $$
-  select s.id, s.title, s.mode, s.messages, s.created_at
-  from public.conversation_shares s
-  where s.id = p_share_id
-  limit 1;
-$$;
-
-grant execute on function public.get_shared_conversation(uuid) to anon, authenticated;
-```
-
----
-
-## 5) Notes about attachments
-
-The UI supports attaching PDFs, images, and text files.
-
-Current backend behavior:
-
-- `.txt`, `.md`, `.csv`, `.json` content is extracted in the browser and sent to the API.
-- PDFs/images are attached visually and their metadata is sent.
-- To truly analyze PDF/image content, add a parser such as PDF.js or use a vision/file-capable model and send the content in that model's required format.
-
----
-
-## 6) Run locally
-
-For static UI only, open `index.html` with a local server. Do not open the file directly with `file://` because module imports may be blocked.
-
-Example:
-
-```bash
-npx serve .
-```
-
-For the API route, deploy to Vercel or use Vercel dev:
-
-```bash
-vercel dev
-```
-
-## v3 responsive note
-
-This version switches into the compact shell earlier, so the mobile-style layout is triggered at normal 100% browser zoom on laptop/mobile preview tools. You should not need to zoom to 200% to make the layout behave.
-
-
-## v4.4 hotfix
-
-- Related question chips are now AI prompts, not patient-data questions.
-- Follow-up turns can inherit drug context from the previous conversation when the user asks about INR, bleeding, monitoring, labs, etc.
-- Streaming now has an empty-response fallback so the UI should not display “No response returned.”
-- Default model is back to `moonshotai/kimi-k2.6`.
-
-## v4.5 UX + Mode Control Update
-
-What changed:
-
-- Streaming now uses a client-side typewriter queue, so even if the API returns a large chunk, the answer appears progressively instead of popping in at once.
-- General Chat is now respected. If the user selects General Chat, the backend no longer silently switches the turn into Case Analysis or Drug Interaction.
-- Medical/pharmacy scope guard remains active: non-medical questions are refused politely.
-- Message rail added beside the chat: hover shows a preview and click scrolls to the target message with a highlight.
-- New Chat now closes the mobile sidebar automatically and focuses the input.
-- Sidebar cleaned up with a more compact mode/tools section and tighter chat history.
-- Premium font stack changed to Manrope + IBM Plex Sans Arabic for better Arabic/English readability.
-- Thinking state now has an animated Nexus orb next to the timer.
-
-Recommended Vercel env:
+## Environment variables
 
 ```env
 NVIDIA_API_KEY=your_key_here
@@ -231,3 +18,18 @@ NVIDIA_MAX_TOKENS=850
 NEXUS_FAST_LOCAL_FIRST=true
 NEXUS_COMPOSER_TIMEOUT_MS=25000
 ```
+
+## Deploy
+
+Upload all files/folders to Vercel, including:
+
+```txt
+index.html
+style.css
+script.js
+api/chat.js
+data/*
+vercel.json
+```
+
+After changing environment variables, run a fresh Redeploy from Vercel.

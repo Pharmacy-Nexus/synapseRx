@@ -774,6 +774,7 @@ function renderMessageRail() {
     segment.className = `rail-segment ${message.role}`;
     segment.dataset.targetIndex = String(absoluteIndex);
     segment.dataset.tooltip = `${message.role === "assistant" ? "Nexus" : "You"}: ${compactPreview(message.content)}`;
+    segment.title = segment.dataset.tooltip;
     segment.setAttribute("aria-label", segment.dataset.tooltip);
     segment.addEventListener("click", () => {
       const target = document.querySelector(`[data-message-index="${absoluteIndex}"]`);
@@ -1235,7 +1236,16 @@ async function exportConversationPdf(conversation = currentConversation()) {
   if (!conversation) return;
 
   const report = buildPdfReportNode(conversation);
-  document.body.appendChild(report);
+  report.style.position = "absolute";
+  report.style.left = "0";
+  report.style.top = "0";
+  report.style.zIndex = "-1";
+  report.style.background = "#ffffff";
+  document.body.prepend(report);
+  if (document.fonts?.ready) {
+    try { await document.fonts.ready; } catch {}
+  }
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
   const filename = `${safeFilename(conversation.title || makeTitle(conversation.messages?.find(m => m.role === "user")?.content || "nexus-chat"))}.pdf`;
 
@@ -1249,7 +1259,10 @@ async function exportConversationPdf(conversation = currentConversation()) {
           html2canvas: {
             scale: Math.min(2.2, window.devicePixelRatio || 2),
             useCORS: true,
-            backgroundColor: getComputedStyle(document.body).getPropertyValue("--surface").trim() || "#ffffff"
+            backgroundColor: "#ffffff",
+            scrollX: 0,
+            scrollY: 0,
+            windowWidth: 794
           },
           jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
           pagebreak: { mode: ["css", "legacy"], avoid: [".pdf-message", ".pdf-callout"] }
