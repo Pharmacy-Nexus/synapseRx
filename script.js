@@ -1,8 +1,7 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
 const API_ENDPOINT = window.NEXUS_API_ENDPOINT || "/api/chat";
-const SUPABASE_URL = String(window.NEXUS_SUPABASE_URL || "").trim();
-const SUPABASE_ANON_KEY = String(window.NEXUS_SUPABASE_ANON_KEY || "").trim();
+
 function isValidHttpUrl(value) {
   try {
     const url = new URL(value);
