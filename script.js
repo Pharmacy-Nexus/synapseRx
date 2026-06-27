@@ -63,8 +63,8 @@ const els = {
   attachBtn: document.getElementById("attachBtn"),
   fileInput: document.getElementById("fileInput"),
   attachedFiles: document.getElementById("attachedFiles"),
-  exportTopBtn: document.getElementById("exportTopBtn"),
-  shareTopBtn: document.getElementById("shareTopBtn"),
+  newChatTopBtn: document.getElementById("newChatTopBtn"),
+  modeSwitcher: document.getElementById("modeSwitcher"),
   toast: document.getElementById("toast")
 };
 
@@ -390,7 +390,7 @@ async function deleteConversation(conversation) {
 function selectMode(mode, persist = true) {
   state.activeMode = MODE_META[mode] ? mode : "general_chat";
   document.body.dataset.mode = state.activeMode;
-  document.querySelectorAll(".mode-btn").forEach(btn => {
+  document.querySelectorAll(".mode-btn, .mode-chip-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.mode === state.activeMode);
   });
   els.activeModePill.textContent = MODE_META[state.activeMode]?.label || MODE_META.general_chat.label;
@@ -420,36 +420,56 @@ function renderHistory() {
   els.toggleArchiveBtn.textContent = state.showArchived ? "Active" : "Archive";
 
   if (state.readOnlyShare) {
-    els.chatHistory.innerHTML = `<div class="empty-state">You are viewing a shared read-only conversation.</div>`;
+    els.chatHistory.innerHTML = `<div class="empty-state">Shared read-only conversation.</div>`;
     return;
   }
 
   if (!state.conversations.length) {
-    els.chatHistory.innerHTML = `<div class="empty-state">No ${state.showArchived ? "archived" : "active"} conversations yet.</div>`;
+    els.chatHistory.innerHTML = `<div class="empty-state">No ${state.showArchived ? "archived" : "active"} chats yet.</div>`;
     return;
   }
 
-  state.conversations.forEach(conversation => {
-    const row = document.createElement("div");
-    row.className = "history-row";
-    row.role = "listitem";
-    const displayTitle = conversation.title || makeTitle(conversation.messages?.find(m => m.role === "user")?.content || "New chat");
-    row.innerHTML = `
-      <button class="history-item ${conversation.id === state.currentConversationId ? "active" : ""}" type="button">
-        <div class="history-title">${conversation.pinned ? "📌" : ""}<span>${escapeHtml(displayTitle)}</span></div>
-        <div class="history-meta">${MODE_META[conversation.mode]?.label || "General Chat"} · ${formatDate(conversation.updated_at)}</div>
-      </button>
-      <button class="history-dots" type="button" aria-label="Conversation actions">•••</button>
-    `;
-    row.querySelector(".history-item").addEventListener("click", () => {
-      state.currentConversationId = conversation.id;
-      selectMode(conversation.mode || "general_chat", false);
-      renderAll();
-      closeSidebarMobile();
+  const groups = groupConversationsByDate(state.conversations);
+  for (const [label, items] of groups) {
+    const groupNode = document.createElement("section");
+    groupNode.className = "history-group";
+    groupNode.innerHTML = `<div class="history-group-title">${escapeHtml(label)}</div>`;
+    items.forEach(conversation => {
+      const row = document.createElement("div");
+      row.className = "history-row compact";
+      row.role = "listitem";
+      const displayTitle = conversation.title || makeTitle(conversation.messages?.find(m => m.role === "user")?.content || "New chat");
+      row.innerHTML = `
+        <button class="history-item ${conversation.id === state.currentConversationId ? "active" : ""}" type="button" title="${escapeHtml(displayTitle)}">
+          <span class="history-title-text">${conversation.pinned ? "📌 " : ""}${escapeHtml(displayTitle)}</span>
+        </button>
+        <button class="history-dots" type="button" aria-label="Conversation actions">•••</button>
+      `;
+      row.querySelector(".history-item").addEventListener("click", () => {
+        state.currentConversationId = conversation.id;
+        selectMode(conversation.mode || "general_chat", false);
+        renderAll();
+        closeSidebarMobile();
+      });
+      row.querySelector(".history-dots").addEventListener("click", (event) => openConversationMenu(event, conversation));
+      groupNode.appendChild(row);
     });
-    row.querySelector(".history-dots").addEventListener("click", (event) => openConversationMenu(event, conversation));
-    els.chatHistory.appendChild(row);
+    els.chatHistory.appendChild(groupNode);
+  }
+}
+
+function groupConversationsByDate(conversations = []) {
+  const today = new Date();
+  const startToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const startYesterday = new Date(startToday);
+  startYesterday.setDate(startYesterday.getDate() - 1);
+  const buckets = new Map([["Today", []], ["Yesterday", []], ["Previous", []]]);
+  conversations.forEach(conversation => {
+    const date = new Date(conversation.updated_at || conversation.created_at || Date.now());
+    const label = date >= startToday ? "Today" : date >= startYesterday ? "Yesterday" : "Previous";
+    buckets.get(label).push(conversation);
   });
+  return Array.from(buckets.entries()).filter(([, items]) => items.length);
 }
 
 function formatDate(value) {
@@ -963,6 +983,13 @@ async function streamAssistantReply(conversation) {
       throw new Error(parseErrorText(errorText) || `Request failed (${response.status})`);
     }
 
+    const serverMode = response.headers.get("X-Nexus-Mode");
+    if (serverMode && MODE_META[serverMode] && serverMode !== state.activeMode) {
+      selectMode(serverMode, false);
+      assistantMessage.mode = serverMode;
+      conversation.mode = serverMode;
+    }
+
     const contentType = response.headers.get("content-type") || "";
     if (response.body && !contentType.includes("application/json")) {
       const reader = response.body.getReader();
@@ -1126,7 +1153,6 @@ function openConversationMenu(event, conversation) {
   menu.innerHTML = `
     <button class="menu-btn" data-action="pin">${conversation.pinned ? "Unpin" : "Pin"}</button>
     <button class="menu-btn" data-action="rename">Rename</button>
-    <button class="menu-btn" data-action="export">Export as PDF</button>
     <button class="menu-btn" data-action="share">Share</button>
     <button class="menu-btn" data-action="archive">${conversation.archived ? "Unarchive" : "Archive"}</button>
     <button class="menu-btn danger" data-action="delete">Delete</button>
@@ -1148,7 +1174,6 @@ async function handleConversationAction(action, conversation) {
     if (title?.trim()) await persistConversation(conversation, { title: title.trim() });
     return;
   }
-  if (action === "export") return exportConversationPdf(conversation);
   if (action === "share") return shareConversation(conversation);
   if (action === "archive") {
     await persistConversation(conversation, { archived: !conversation.archived });
@@ -1341,16 +1366,19 @@ function closeSidebarMobile() {
   els.sidebarBackdrop.classList.remove("show");
 }
 
+async function handleNewChatClick() {
+  await createNewConversation(true);
+  closeSidebarMobile();
+  setTimeout(() => els.messageInput.focus(), 80);
+}
+
 function bindEvents() {
   els.loginTab.addEventListener("click", () => setAuthMode("login"));
   els.signupTab.addEventListener("click", () => setAuthMode("signup"));
   els.authForm.addEventListener("submit", handleAuthSubmit);
   els.logoutBtn.addEventListener("click", logout);
-  els.newChatBtn.addEventListener("click", async () => {
-    await createNewConversation(true);
-    closeSidebarMobile();
-    setTimeout(() => els.messageInput.focus(), 80);
-  });
+  els.newChatBtn.addEventListener("click", handleNewChatClick);
+  els.newChatTopBtn?.addEventListener("click", handleNewChatClick);
   els.themeToggleBtn.addEventListener("click", () => applyTheme(document.body.dataset.theme === "dark" ? "light" : "dark"));
   els.openSidebarBtn.addEventListener("click", openSidebarMobile);
   els.closeSidebarBtn.addEventListener("click", closeSidebarMobile);
@@ -1361,7 +1389,7 @@ function bindEvents() {
     state.currentConversationId = state.conversations[0]?.id || null;
     renderAll();
   });
-  document.querySelectorAll(".mode-btn").forEach(btn => {
+  document.querySelectorAll(".mode-btn, .mode-chip-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       selectMode(btn.dataset.mode);
       closeSidebarMobile();
@@ -1383,8 +1411,7 @@ function bindEvents() {
     renderFileChips();
   });
   els.stopBtn.addEventListener("click", () => state.abortController?.abort());
-  els.exportTopBtn.addEventListener("click", () => exportConversationPdf());
-  els.shareTopBtn.addEventListener("click", () => shareConversation(currentConversation()));
+
   els.messages.addEventListener("scroll", () => {
     if (updateActiveRailFromViewport.raf) cancelAnimationFrame(updateActiveRailFromViewport.raf);
     updateActiveRailFromViewport.raf = requestAnimationFrame(updateActiveRailFromViewport);

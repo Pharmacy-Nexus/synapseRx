@@ -1,12 +1,15 @@
-# Nexus Clinical Pharmacist — v4.6 UX Polish
+# Nexus Clinical Pharmacist — v4.7 Mode + Sidebar UX Fix
 
-## What changed in v4.6
+This version focuses on the UX logic we agreed on:
 
-- Message rail previews now appear only on hover/focus, not permanently on the active message.
-- Active rail segment still shows the current position, but without a distracting floating message card.
-- PDF export blank-page issue fixed by rendering the PDF report inside the renderable page area instead of far off-screen.
-- PDF export now forces a white report background, waits for fonts to load, and strips suggested-question blocks from assistant content before export.
-- The PDF report has cleaner callout/table styling for clinical content.
+- General medical/pharmacy questions stay in **General Chat**.
+- Clear interaction questions auto-switch to **Drug Interaction** and the theme changes.
+- Clear patient/lab/symptom scenarios auto-switch to **Case Analysis**.
+- Training/quiz prompts auto-switch to **Drug Reverse**.
+- The sidebar is simplified to be closer to ChatGPT: brand, New Chat, grouped chat history, footer.
+- Modes are now lightweight pills in the topbar instead of large sidebar cards.
+- Export PDF is removed from the topbar for now and replaced with **New Chat**.
+- Short greetings like `Hi` are handled locally and should respond fast without clinical formatting.
 
 ## Environment variables
 
@@ -19,17 +22,38 @@ NEXUS_FAST_LOCAL_FIRST=true
 NEXUS_COMPOSER_TIMEOUT_MS=25000
 ```
 
-## Deploy
-
-Upload all files/folders to Vercel, including:
+## Project structure
 
 ```txt
 index.html
 style.css
 script.js
 api/chat.js
-data/*
-vercel.json
+data/
+  drug_aliases.json
+  drug_monographs.json
+  interactions.json
+  clinical_rules.json
+  risk_keywords.json
 ```
 
-After changing environment variables, run a fresh Redeploy from Vercel.
+## Routing behavior
+
+```txt
+General Chat
+→ active ingredient, excipient, herb, formulation, manufacturing, pharmacology explanations, normal drug info
+
+Drug Interaction
+→ warfarin with amiodarone, ramipril + potassium, safe together, interaction/contraindication questions
+
+Case Analysis
+→ patient age/labs/symptoms/diagnosis/pregnancy/renal/liver/medication-list scenarios
+
+Drug Reverse
+→ quiz, train me, reverse scenario, interactive training prompts
+```
+
+## Deployment notes
+
+After replacing files, redeploy on Vercel and hard-refresh the browser.
+Do not open `index.html` directly from disk because `/api/chat` requires Vercel or `vercel dev`.
