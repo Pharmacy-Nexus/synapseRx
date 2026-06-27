@@ -1,4 +1,5 @@
 const API_ENDPOINT = window.NEXUS_API_ENDPOINT || "/api/chat";
+console.info("Nexus build", window.NEXUS_BUILD || "v4.8.3-hard-noauth");
 const HAS_SUPABASE = false;
 const supabase = null;
 
@@ -237,8 +238,8 @@ async function enterApp(user, options = {}) {
   document.body.classList.add("app-active");
   state.user = user;
   state.readOnlyShare = Boolean(options.readOnlyShare);
-  els.authPage.classList.add("hidden");
-  els.appRoot.classList.remove("hidden");
+  els.authPage?.classList.add("hidden");
+  els.appRoot?.classList.remove("hidden");
   updateUserCard();
   applyTheme(localStorage.getItem("nexus_theme") || "light");
 
@@ -1524,6 +1525,9 @@ async function init() {
   applyTheme(localStorage.getItem("nexus_theme") || "light");
 
   const params = new URLSearchParams(location.search);
+  if (params.get("reset") === "1") {
+    Object.keys(localStorage).filter(k => k.startsWith("nexus_")).forEach(k => localStorage.removeItem(k));
+  }
   const shareId = params.get("share");
   if (shareId) {
     await loadSharedConversation(shareId);
@@ -1535,7 +1539,16 @@ async function init() {
   await enterApp(localUser);
 }
 
-init().catch(error => {
+init().catch(async error => {
   console.error(error);
-  showToast(error.message || "App failed to start");
+  try {
+    Object.keys(localStorage).filter(k => k.startsWith("nexus_conversations_")).forEach(k => localStorage.removeItem(k));
+    const fallbackUser = buildLocalUser("local@nexus.app", "Nexus User");
+    setLocalJson(localUserKey(), fallbackUser);
+    await enterApp(fallbackUser);
+    showToast("Recovered workspace after startup issue.");
+  } catch (recoveryError) {
+    console.error(recoveryError);
+    showToast((error.message || "App failed to start") + " — " + (recoveryError.message || "recovery failed"));
+  }
 });
