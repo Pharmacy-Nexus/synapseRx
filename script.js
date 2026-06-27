@@ -1,9 +1,17 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
 const API_ENDPOINT = window.NEXUS_API_ENDPOINT || "/api/chat";
-const SUPABASE_URL = window.NEXUS_SUPABASE_URL || "";
-const SUPABASE_ANON_KEY = window.NEXUS_SUPABASE_ANON_KEY || "";
-const HAS_SUPABASE = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+const SUPABASE_URL = String(window.NEXUS_SUPABASE_URL || "").trim();
+const SUPABASE_ANON_KEY = String(window.NEXUS_SUPABASE_ANON_KEY || "").trim();
+function isValidHttpUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+const HAS_SUPABASE = Boolean(isValidHttpUrl(SUPABASE_URL) && SUPABASE_ANON_KEY.length > 20);
 const supabase = HAS_SUPABASE ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 const MODE_META = {
@@ -123,6 +131,22 @@ function getLocalJson(key, fallback) {
 function setLocalJson(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
+
+function withTimeout(promise, ms, label = "Request timed out") {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(label)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
+}
+
+function buildLocalUser(email, fullName) {
+  return {
+    id: "local_user",
+    email: email || "demo@nexus.local",
+    user_metadata: { full_name: fullName || "Local Demo" }
+  };
+}
 function isShortGreetingText(text = "") {
   const t = String(text || "").trim().toLowerCase();
   return /^(hi|hello|hey|السلام عليكم|اهلا|أهلا|ازيك|عامل ايه|هاي|هلا|صباح الخير|مساء الخير)[!.؟\s]*$/.test(t);
@@ -167,37 +191,47 @@ function setAuthMode(mode) {
 
 async function handleAuthSubmit(event) {
   event.preventDefault();
-  const email = els.emailInput.value.trim();
+  const email = els.emailInput.value.trim() || "demo@nexus.local";
   const password = els.passwordInput.value;
-  const fullName = els.nameInput.value.trim() || email.split("@")[0];
-  setAuthMessage("Working…");
+  const fullName = els.nameInput.value.trim() || email.split("@")[0] || "Local Demo";
+  setAuthMessage(HAS_SUPABASE ? "Connecting…" : "Opening local demo…");
   els.authSubmitBtn.disabled = true;
 
   try {
-    if (HAS_SUPABASE) {
-      if (state.authMode === "signup") {
-        const { data, error } = await supabase.auth.signUp({
+    if (!HAS_SUPABASE) {
+      const user = buildLocalUser(email, fullName);
+      setLocalJson(localUserKey(), user);
+      await enterApp(user);
+      return;
+    }
+
+    if (state.authMode === "signup") {
+      const { data, error } = await withTimeout(
+        supabase.auth.signUp({
           email,
           password,
           options: { data: { full_name: fullName } }
-        });
-        if (error) throw error;
-        if (!data.session) {
-          setAuthMessage("Account created. Check your email if confirmation is enabled.");
-          return;
-        }
-        await enterApp(data.user || data.session.user);
-      } else {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        await enterApp(data.user || data.session.user);
+        }),
+        9000,
+        "Supabase signup timed out. Check URL/Anon key or use local demo mode."
+      );
+      if (error) throw error;
+      if (!data.session) {
+        setAuthMessage("Account created. Check your email if confirmation is enabled.");
+        return;
       }
+      await enterApp(data.user || data.session.user);
     } else {
-      const user = { id: "local_user", email, user_metadata: { full_name: fullName } };
-      setLocalJson(localUserKey(), user);
-      await enterApp(user);
+      const { data, error } = await withTimeout(
+        supabase.auth.signInWithPassword({ email, password }),
+        9000,
+        "Supabase login timed out. Check URL/Anon key or use local demo mode."
+      );
+      if (error) throw error;
+      await enterApp(data.user || data.session.user);
     }
   } catch (error) {
+    console.error(error);
     setAuthMessage(error.message || "Authentication failed.", true);
   } finally {
     els.authSubmitBtn.disabled = false;
@@ -1510,13 +1544,23 @@ async function init() {
   }
 
   if (HAS_SUPABASE) {
-    const { data } = await supabase.auth.getSession();
-    supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user && !state.user) enterApp(session.user);
-      if (!session?.user && state.user && !state.readOnlyShare) showAuth();
-    });
-    if (data.session?.user) await enterApp(data.session.user);
-    else showAuth();
+    try {
+      const { data } = await withTimeout(
+        supabase.auth.getSession(),
+        5000,
+        "Supabase session check timed out"
+      );
+      supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user && !state.user) enterApp(session.user);
+        if (!session?.user && state.user && !state.readOnlyShare) showAuth();
+      });
+      if (data.session?.user) await enterApp(data.session.user);
+      else showAuth();
+    } catch (error) {
+      console.warn(error);
+      showAuth();
+      setAuthMessage("Supabase did not respond. You can still login in local demo mode by clearing Supabase values.", true);
+    }
   } else {
     const localUser = getLocalJson(localUserKey(), null);
     if (localUser) await enterApp(localUser);
