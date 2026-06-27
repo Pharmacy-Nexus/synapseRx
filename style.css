@@ -1,27 +1,22 @@
-/* ============================================
-   NEXUS CLINICAL PHARMACIST v5.0
-   Premium Clinical UI System
-   ============================================ */
-
 :root {
   /* Base Clinical Palette */
   --bg: #f6f8fc;
   --surface: #ffffff;
   --surface-elevated: #ffffff;
   --surface-subtle: #f1f5f9;
-  
+
   --text: #0f172a;
   --text-secondary: #475569;
   --text-tertiary: #94a3b8;
-  
+
   --border: #e2e8f0;
   --border-subtle: #f1f5f9;
-  
+
   /* Clinical Accents */
-  --accent-primary: #0d9488;   /* Teal - Clinical */
+  --accent-primary: #0d9488;
   --accent-secondary: #14b8a6;
   --accent-ghost: rgba(13, 148, 136, 0.08);
-  
+
   /* Safety Semaphore */
   --danger: #dc2626;
   --danger-soft: rgba(220, 38, 38, 0.08);
@@ -31,25 +26,25 @@
   --success-soft: rgba(5, 150, 105, 0.08);
   --info: #2563eb;
   --info-soft: rgba(37, 99, 235, 0.08);
-  
+
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
   --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.07), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
   --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
   --shadow-glow: 0 0 0 3px var(--accent-ghost);
-  
+
   /* Radii */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 20px;
   --radius-full: 999px;
-  
+
   /* Typography */
   --font-sans: "Manrope", "IBM Plex Sans Arabic", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
-  
+
   /* Spacing Scale */
   --space-1: 4px;
   --space-2: 8px;
@@ -59,7 +54,7 @@
   --space-6: 24px;
   --space-8: 32px;
   --space-10: 40px;
-  
+
   /* Transitions */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -72,14 +67,14 @@ body[data-theme="dark"] {
   --surface: #111827;
   --surface-elevated: #1a2235;
   --surface-subtle: #161e2e;
-  
+
   --text: #f8fafc;
   --text-secondary: #cbd5e1;
   --text-tertiary: #64748b;
-  
+
   --border: rgba(255, 255, 255, 0.08);
   --border-subtle: rgba(255, 255, 255, 0.05);
-  
+
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.25), 0 2px 4px -2px rgba(0, 0, 0, 0.15);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
@@ -1582,7 +1577,7 @@ kbd {
   .app-shell {
     grid-template-columns: 1fr;
   }
-  
+
   .sidebar {
     position: fixed;
     inset: 0 auto 0 0;
@@ -1591,9 +1586,9 @@ kbd {
     transform: translateX(-105%);
     transition: transform var(--transition-base);
   }
-  
+
   .sidebar.open { transform: translateX(0); }
-  
+
   .mobile-toggle {
     display: grid !important;
     place-items: center;
@@ -1604,43 +1599,43 @@ kbd {
   .auth-page {
     grid-template-columns: 1fr;
   }
-  
+
   .auth-hero {
     min-height: 280px;
     padding: var(--space-6);
   }
-  
+
   .auth-hero-desc, .auth-preview { display: none; }
-  
+
   .auth-panel {
     padding: var(--space-6);
   }
-  
+
   .welcome-prompts {
     grid-template-columns: 1fr;
   }
-  
+
   .message-row {
     gap: var(--space-3);
   }
-  
+
   .message-bubble {
     padding: var(--space-3) var(--space-4);
     font-size: 14px;
   }
-  
+
   .mode-switcher {
     display: none;
   }
-  
+
   .topbar-title {
     font-size: 14px;
   }
-  
+
   .composer-area {
     padding: var(--space-3);
   }
-  
+
   .safety-panel {
     left: var(--space-4);
     right: var(--space-4);
@@ -1650,7 +1645,7 @@ kbd {
     max-height: 50vh;
     transform: translateY(120%);
   }
-  
+
   .safety-panel.open {
     transform: translateY(0);
   }
@@ -1665,15 +1660,15 @@ kbd {
    PDF EXPORT STYLES
    ============================================ */
 @media print {
-  .sidebar, .composer-area, .topbar, .message-actions, .related-questions {
+  .sidebar, .composer-area, .topbar, .message-actions, .related-questions, .safety-panel {
     display: none !important;
   }
-  
+
   .main {
     height: auto;
     overflow: visible;
   }
-  
+
   .messages-area {
     padding: 20px;
   }
