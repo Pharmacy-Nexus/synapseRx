@@ -1,4 +1,4 @@
-// ============ SAFETY PANEL ============
+
 function showSafetyPanel(alerts = []) {
   const panel = document.getElementById('safetyPanel');
   const content = document.getElementById('safetyContent');
