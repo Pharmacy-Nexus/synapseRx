@@ -303,3 +303,21 @@ body.editing-message .composer { border-color: var(--accent); box-shadow: 0 0 0 
   .mode-switcher { max-width: 46vw; }
   .mode-chip-btn { padding-inline: 7px; }
 }
+
+/* v4.8.4 audit fixes */
+body.sidebar-collapsed .app-shell { grid-template-columns: 0 minmax(0, 1fr); }
+body.sidebar-collapsed .sidebar {
+  padding: 0;
+  border-right: 0;
+  overflow: hidden;
+  transform: translateX(-100%);
+}
+body.sidebar-collapsed .sidebar > * { display: none; }
+body.sidebar-collapsed .sidebar-backdrop { display: none; }
+body.sidebar-collapsed .topbar #openSidebarBtn { display: grid; }
+.sidebar-top #closeSidebarBtn { display: grid; }
+.topbar #openSidebarBtn { display: grid; }
+.chat-history, .history-group, .history-row, .history-item, .history-title-text { min-width: 0; }
+.chat-history { overflow-x: hidden; }
+.history-row { overflow: hidden; }
+.history-title-text { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

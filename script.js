@@ -1,5 +1,8 @@
 const API_ENDPOINT = window.NEXUS_API_ENDPOINT || "/api/chat";
-console.info("Nexus build", window.NEXUS_BUILD || "v4.8.3-hard-noauth");
+const MAX_CONTEXT_MESSAGES_TO_SEND = 16;
+const MAX_ATTACHMENTS = 4;
+const MAX_TEXT_FILE_BYTES = 750 * 1024;
+console.info("Nexus build", window.NEXUS_BUILD || "v4.8.4-auditfix");
 const HAS_SUPABASE = false;
 const supabase = null;
 
@@ -143,6 +146,17 @@ function isShortGreetingText(text = "") {
 
 function localGreetingReply() {
   return "Hi 👋 I’m Nexus. How can I help?";
+}
+
+function buildApiMessages(messages = []) {
+  return (messages || [])
+    .filter(m => m.role === "user" || m.role === "assistant")
+    .slice(-MAX_CONTEXT_MESSAGES_TO_SEND)
+    .map(m => ({
+      role: m.role,
+      content: String(m.content || "").slice(0, 5000),
+      attachments: m.attachments || []
+    }));
 }
 
 
@@ -394,7 +408,7 @@ async function createNewConversation(render = true) {
   selectMode(selected?.mode || state.activeMode, false);
   if (render) {
     renderAll();
-    closeSidebarMobile();
+    closeSidebarAfterNavigation();
     setTimeout(() => els.messageInput.focus(), 50);
   }
 }
@@ -481,7 +495,7 @@ function renderHistory() {
         state.currentConversationId = conversation.id;
         selectMode(conversation.mode || "general_chat", false);
         renderAll();
-        closeSidebarMobile();
+        closeSidebarAfterNavigation();
       });
       row.querySelector(".history-dots").addEventListener("click", (event) => openConversationMenu(event, conversation));
       groupNode.appendChild(row);
@@ -987,30 +1001,46 @@ function makeTitle(text) {
 }
 
 async function buildAttachmentPayloads(files) {
+  const incoming = Array.from(files || []);
+  const selected = incoming.slice(0, MAX_ATTACHMENTS);
+  if (incoming.length > MAX_ATTACHMENTS) {
+    showToast(`Only the first ${MAX_ATTACHMENTS} text files were attached.`);
+  }
+
   const payloads = [];
   const unsupported = [];
-  for (const file of files) {
+  for (const file of selected) {
     const item = {
       name: file.name,
       type: file.type || "application/octet-stream",
       size: file.size
     };
 
-    if (/^(text\/|application\/json|text\/csv)/.test(item.type) || /\.(txt|md|csv|json)$/i.test(file.name)) {
-      item.text = await file.text();
-      if (item.text.length > 12000) item.text = `${item.text.slice(0, 12000)}\n\n[File truncated after 12,000 characters]`;
-      item.extractionStatus = "text_extracted";
-    } else {
-      item.extractionStatus = "not_extracted";
-      item.note = "Nexus currently receives this file metadata only. Paste the file text or upload .txt/.md/.csv/.json for content analysis.";
+    const isSupportedText = /^(text\/|application\/json|text\/csv)/.test(item.type) || /\.(txt|md|csv|json)$/i.test(file.name);
+    if (!isSupportedText) {
+      item.extractionStatus = "not_supported";
+      item.note = "Only .txt, .md, .csv, and .json files are currently read. Paste PDF/image text manually for now.";
       unsupported.push(file.name);
+      payloads.push(item);
+      continue;
     }
 
+    if (file.size > MAX_TEXT_FILE_BYTES) {
+      item.extractionStatus = "too_large";
+      item.note = `Text file exceeds ${Math.round(MAX_TEXT_FILE_BYTES / 1024)} KB. Paste the relevant section instead.`;
+      unsupported.push(file.name);
+      payloads.push(item);
+      continue;
+    }
+
+    item.text = await file.text();
+    if (item.text.length > 12000) item.text = `${item.text.slice(0, 12000)}\n\n[File truncated after 12,000 characters]`;
+    item.extractionStatus = "text_extracted";
     payloads.push(item);
   }
 
   if (unsupported.length) {
-    showToast(`File content not extracted yet: ${unsupported.slice(0, 2).join(", ")}${unsupported.length > 2 ? "…" : ""}`);
+    showToast(`File content not read: ${unsupported.slice(0, 2).join(", ")}${unsupported.length > 2 ? "…" : ""}`);
   }
 
   return payloads;
@@ -1057,11 +1087,7 @@ async function streamAssistantReply(conversation) {
       body: JSON.stringify({
         mode: state.activeMode,
         modeInstruction: MODE_META[state.activeMode].prompt,
-        messages: conversation.messages.filter(m => m.role === "user" || m.role === "assistant").map(m => ({
-          role: m.role,
-          content: m.content,
-          attachments: m.attachments || []
-        })),
+        messages: buildApiMessages(conversation.messages),
         stream: true
       }),
       signal: state.abortController.signal
@@ -1455,19 +1481,34 @@ function safeFilename(name) {
   return name.toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/gi, "-").replace(/^-|-$/g, "").slice(0, 70) || "nexus-chat";
 }
 
-function openSidebarMobile() {
-  els.sidebar.classList.add("open");
-  els.sidebarBackdrop.classList.add("show");
+function isMobileSidebar() {
+  return window.matchMedia("(max-width: 860px)").matches;
 }
 
-function closeSidebarMobile() {
-  els.sidebar.classList.remove("open");
-  els.sidebarBackdrop.classList.remove("show");
+function openSidebar() {
+  document.body.classList.remove("sidebar-collapsed");
+  if (isMobileSidebar()) {
+    els.sidebar.classList.add("open");
+    els.sidebarBackdrop.classList.add("show");
+  }
+}
+
+function closeSidebar() {
+  if (isMobileSidebar()) {
+    els.sidebar.classList.remove("open");
+    els.sidebarBackdrop.classList.remove("show");
+  } else {
+    document.body.classList.add("sidebar-collapsed");
+  }
+}
+
+function closeSidebarAfterNavigation() {
+  if (isMobileSidebar()) closeSidebar();
 }
 
 async function handleNewChatClick() {
   await createNewConversation(true);
-  closeSidebarMobile();
+  closeSidebarAfterNavigation();
   setTimeout(() => els.messageInput.focus(), 80);
 }
 
@@ -1479,9 +1520,9 @@ function bindEvents() {
   els.newChatBtn.addEventListener("click", handleNewChatClick);
   els.newChatTopBtn?.addEventListener("click", handleNewChatClick);
   els.themeToggleBtn.addEventListener("click", () => applyTheme(document.body.dataset.theme === "dark" ? "light" : "dark"));
-  els.openSidebarBtn.addEventListener("click", openSidebarMobile);
-  els.closeSidebarBtn.addEventListener("click", closeSidebarMobile);
-  els.sidebarBackdrop.addEventListener("click", closeSidebarMobile);
+  els.openSidebarBtn.addEventListener("click", openSidebar);
+  els.closeSidebarBtn.addEventListener("click", closeSidebar);
+  els.sidebarBackdrop.addEventListener("click", closeSidebar);
   els.toggleArchiveBtn.addEventListener("click", async () => {
     state.showArchived = !state.showArchived;
     await loadConversations();
@@ -1491,7 +1532,7 @@ function bindEvents() {
   document.querySelectorAll(".mode-btn, .mode-chip-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       selectMode(btn.dataset.mode);
-      closeSidebarMobile();
+      closeSidebarAfterNavigation();
       setTimeout(() => els.messageInput.focus(), 50);
     });
   });
