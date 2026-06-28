@@ -1,5 +1,5 @@
 const { loadClinicalData } = require('../lib/data');
-const { detectModeFromText, isGeneralKnowledgeQuestion, isMedicalInScope, isShortGreeting, greetingReply, outOfScopeReply } = require('../lib/detector');
+const { detectModeFromText, isGeneralKnowledgeQuestion, isMedicalInScope, isShortGreeting, greetingReply, isVagueHumanQuestion, vagueHumanClarificationReply, outOfScopeReply } = require('../lib/detector');
 const { localParseQuestion, inheritContextIfNeeded, getRecentContextText, inferMissingInfo } = require('../lib/parser');
 const { normalizeDrugList } = require('../lib/normalizer');
 const { retrieveEvidence, triageRisk } = require('../lib/engines');
@@ -15,17 +15,40 @@ const MODE_LABELS = {
 
 const DATA = loadClinicalData();
 
+const MAX_BODY_BYTES = Number(process.env.NEXUS_MAX_BODY_BYTES || 1024 * 1024);
+
+function httpError(message, statusCode = 500) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+}
+
+function byteLength(value = '') {
+  return Buffer.byteLength(String(value), 'utf8');
+}
+
 function parseRequestBody(req) {
   return new Promise((resolve, reject) => {
     if (req.body) {
-      if (typeof req.body === 'string') {
-        try { return resolve(JSON.parse(req.body)); }
-        catch (error) { return reject(error); }
+      try {
+        const raw = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+        if (byteLength(raw) > MAX_BODY_BYTES) return reject(httpError('Request body too large.', 413));
+        return resolve(typeof req.body === 'string' ? JSON.parse(req.body) : req.body);
+      } catch (error) {
+        return reject(error);
       }
-      return resolve(req.body);
     }
+
     let data = '';
-    req.on('data', chunk => { data += chunk; });
+    let received = 0;
+    req.on('data', chunk => {
+      received += chunk.length;
+      if (received > MAX_BODY_BYTES) {
+        req.destroy(httpError('Request body too large.', 413));
+        return;
+      }
+      data += chunk;
+    });
     req.on('end', () => {
       try { resolve(data ? JSON.parse(data) : {}); }
       catch (error) { reject(error); }
@@ -34,10 +57,33 @@ function parseRequestBody(req) {
   });
 }
 
-function setCors(res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+function getAllowedOrigins() {
+  const configured = (process.env.NEXUS_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
+
+  if (process.env.NEXUS_PUBLIC_APP_URL) configured.push(process.env.NEXUS_PUBLIC_APP_URL.trim());
+  if (process.env.VERCEL_URL) configured.push(`https://${process.env.VERCEL_URL.trim()}`);
+  if (process.env.NODE_ENV !== 'production') {
+    configured.push('http://localhost:3000', 'http://127.0.0.1:3000');
+  }
+
+  return Array.from(new Set(configured.map(origin => origin.replace(/\/$/, ''))));
+}
+
+function setCors(req, res) {
+  const origin = req.headers.origin ? String(req.headers.origin).replace(/\/$/, '') : '';
+  const allowedOrigins = getAllowedOrigins();
+  const isAllowed = !origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin);
+
+  res.setHeader('Vary', 'Origin');
+  if (isAllowed) {
+    res.setHeader('Access-Control-Allow-Origin', origin || allowedOrigins[0] || '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  }
+  return isAllowed;
 }
 
 function getLatestUserText(messages = []) {
@@ -75,6 +121,11 @@ function sendPlainText(res, text, status = 200) {
   res.end(text);
 }
 
+
+function extractAlreadyClinical(text = '') {
+  return /\b(patient|case|drug|medicine|medication|symptom|diagnosis|lab|labs|bleeding|seizure|unconscious|chest pain|breathing)\b|مريض|حالة|دواء|دوا|اعراض|أعراض|تحليل|تحاليل|نزيف|تشنج|اغماء|إغماء|اختناق|صدر|تنفس/.test(String(text || '').toLowerCase());
+}
+
 function resolveMode(selectedMode, detectedMode, latestUserText) {
   let mode = MODE_LABELS[selectedMode] ? selectedMode : 'general_chat';
   // Strong tool signals auto-switch the UI and response style.
@@ -87,11 +138,12 @@ function resolveMode(selectedMode, detectedMode, latestUserText) {
 }
 
 module.exports = async (req, res) => {
-  setCors(res);
+  const corsAllowed = setCors(req, res);
 
-  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method === 'OPTIONS') return res.status(corsAllowed ? 204 : 403).end();
+  if (!corsAllowed) return res.status(403).json({ error: 'Origin not allowed.' });
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  if (!process.env.NVIDIA_API_KEY) return res.status(500).json({ error: 'Missing NVIDIA_API_KEY environment variable.' });
+  if (!process.env.NVIDIA_API_KEY) return res.status(500).json({ error: 'AI service is not configured.' });
 
   try {
     const body = await parseRequestBody(req);
@@ -106,6 +158,13 @@ module.exports = async (req, res) => {
       res.setHeader('X-Nexus-Mode', 'general_chat');
       res.setHeader('X-Nexus-Risk', 'none');
       return shouldStream ? sendPlainText(res, reply) : res.status(200).json({ mode: 'general_chat', risk: 'none', reply });
+    }
+
+    if (isVagueHumanQuestion(latestUserText) && !extractAlreadyClinical(latestUserText)) {
+      const reply = vagueHumanClarificationReply();
+      res.setHeader('X-Nexus-Mode', 'case_analysis');
+      res.setHeader('X-Nexus-Risk', 'clarification_needed');
+      return shouldStream ? sendPlainText(res, reply) : res.status(200).json({ mode: 'case_analysis', risk: 'clarification_needed', reply });
     }
 
     if (!isMedicalInScope(latestUserText, DATA)) {
@@ -153,9 +212,12 @@ module.exports = async (req, res) => {
 
     if (!upstream.ok) {
       const errorText = await upstream.text();
-      return res.status(upstream.status).json({
-        error: `NVIDIA API failed (${upstream.status})`,
-        details: safeParseJson(errorText) || errorText.slice(0, 500),
+      console.error('AI provider request failed', {
+        status: upstream.status,
+        details: safeParseJson(errorText) || errorText.slice(0, 500)
+      });
+      return res.status(502).json({
+        error: 'AI service failed to generate a response. Please retry.',
         pipeline: process.env.NEXUS_DEBUG_PIPELINE === 'true' ? pipelineContext : undefined
       });
     }
@@ -178,6 +240,10 @@ module.exports = async (req, res) => {
       evidenceBrief: process.env.NEXUS_DEBUG_PIPELINE === 'true' ? pipelineContext : undefined
     });
   } catch (error) {
-    return res.status(500).json({ error: error.message || 'Internal server error' });
+    const statusCode = error.statusCode || 500;
+    if (statusCode >= 500) console.error('API route error', error);
+    return res.status(statusCode).json({
+      error: statusCode === 413 ? 'Request body too large.' : 'Request could not be processed.'
+    });
   }
 };
