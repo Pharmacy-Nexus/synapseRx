@@ -743,6 +743,19 @@ function ensureRelatedQuestions(text = "") {
 function buildFallbackRelatedQuestions(text = "") {
   const t = String(text || "").toLowerCase();
   if (isGreetingLikeAssistantContent(text)) return [];
+  const complexCaseHits = [
+    /hyperkalemia|potassium|k\+|بوتاسيوم/.test(t),
+    /triple whammy|aki|acute kidney|oliguria|urine output|renal|kidney|egfr|creatinine/.test(t),
+    /warfarin|amiodarone|inr|bleeding|bruising/.test(t),
+    /metformin|lactic acidosis/.test(t)
+  ].filter(Boolean).length;
+  if (complexCaseHits >= 2 || /most urgent medication-related problems|clinical pharmacist case analysis|drug related problems/.test(t)) {
+    return [
+      "Prioritize urgent actions for hyperkalemia, AKI, and bleeding risk in this case.",
+      "Create a prescriber-directed medication review plan for the high-risk medicines.",
+      "Build a 24–48 hour monitoring plan for potassium, renal function, INR, and bleeding signs."
+    ];
+  }
   if (/warfarin|amiodarone|inr|bleeding/.test(t)) {
     return [
       "Explain the INR monitoring plan after starting amiodarone with warfarin.",
