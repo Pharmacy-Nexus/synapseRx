@@ -1,43 +1,58 @@
-# Nexus Clinical Pharmacist — v5.0 Work Shelf
+# Nexus Clinical Pharmacist — v5.1 Shadow Check
 
-This build adds **Work Shelf**, a local workspace feature for collecting key clinical points from the chat and turning them into practical outputs.
+Small patch on top of v5.0 Work Shelf.
 
-## What changed in v5.0
+## What changed
 
-- Added a **Work Shelf** section in the sidebar.
-- Added a **Shelf** button under every message.
-- Shelf button saves selected text if the user highlights part of a message, otherwise it saves the full message.
-- Work Shelf auto-classifies saved items as case, risk, lab/risk, recommendation, counseling, or note.
-- Added quick generators:
-  - Pharmacist intervention note
-  - Patient counseling script
-  - Prescriber message
-  - Monitoring plan
-- Work Shelf is stored locally in `localStorage` for the current no-auth build.
-- No backend/database migration required.
+### Nexus Shadow Check
+- Adds a deterministic `shadow_check` object inside the Evidence Brief.
+- Case Analysis / Drug Interaction prompts now ask the AI to include **Nexus Shadow Check** when relevant.
+- Shadow Check focuses on:
+  - hidden risks the pharmacist/user may miss
+  - missing or blind-spot data
+  - urgency changers
+  - pharmacist traps / unsafe assumptions
+  - monitoring focus
 
-## Files changed in patch
+### Frontend tool button
+- Adds a **Shadow** button under assistant messages.
+- If the user selects part of an answer, Shadow audits only the selected excerpt.
+- If nothing is selected, Shadow audits the full answer against the latest user case.
+- It submits a focused Case Analysis prompt automatically.
+
+### Backend updates
+- `lib/evidenceBrief.js`: adds `buildShadowCheck()` and includes it in `pipelineContext`.
+- `api/chat.js`: passes latest user text to the Evidence Brief and returns `X-Nexus-Shadow: enabled` when relevant.
+- `lib/composer.js`: instructs the model to produce a concise Shadow Check for complex clinical/interaction cases.
+
+## Files changed in the patch
+
+- `index.html`
+- `style.css`
+- `script.js`
+- `api/chat.js`
+- `lib/composer.js`
+- `lib/evidenceBrief.js`
+- `README.md`
+
+## Manual test
+
+1. Ask a complex case:
 
 ```txt
-index.html
-style.css
-script.js
-README.md
+Patient 72 years old with CKD, ramipril, spironolactone, furosemide, diclofenac, metformin, warfarin and amiodarone. eGFR 24, K 5.9, creatinine 1.6 to 2.4, INR 4.1, reduced urine output and bruising. What are the urgent medication-related problems?
 ```
 
-## Manual test checklist
+Expected:
+- Normal case analysis.
+- A section called **Nexus Shadow Check** or equivalent.
+- Shadow should mention hidden renal/potassium/bleeding traps and missing data like ECG, active bleeding, urine output/volume status.
 
-1. Open the app and ask any case question.
-2. Highlight a recommendation from the answer and click **Shelf**.
-3. Add 2–3 more items from different messages.
-4. Check that Work Shelf count updates in the sidebar.
-5. Click **Intervention**, **Counsel**, **Prescriber**, or **Monitor**.
-6. Confirm Nexus sends a structured generation prompt in Case Analysis mode.
-7. Double-click a shelf item to insert it into the composer.
-8. Use **Clear** to empty the shelf.
+2. Click **Shadow** under the assistant answer.
 
-## Notes
+Expected:
+- A new focused audit response with only hidden risks, missing/blind-spot data, urgency changers, and pharmacist traps.
 
-- Work Shelf items are user-provided working notes, not verified evidence by themselves.
-- The generated prompt tells Nexus not to invent missing patient details and to keep safety wording pharmacist-appropriate.
-- This is an MVP; later it can connect with Quick Access, Patient Context Panel, and Shadow Check.
+## Deploy
+
+Upload these patch files over v5.0 and redeploy on Vercel.

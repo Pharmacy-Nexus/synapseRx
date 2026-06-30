@@ -499,3 +499,20 @@ body[data-theme="dark"] .message-action-btn.save-shelf { color: #c4b5fd; backgro
 @media (max-width: 920px) {
   .work-section { max-height: 28vh; }
 }
+
+/* v5.1 Shadow Check */
+.message-action-btn.save-shadow {
+  color: #0f766e;
+  background: color-mix(in srgb, #0f766e, transparent 90%);
+  border-color: color-mix(in srgb, #0f766e, transparent 74%);
+}
+.message-action-btn.save-shadow:hover {
+  color: #0f766e;
+  background: color-mix(in srgb, #0f766e, transparent 84%);
+  border-color: color-mix(in srgb, #0f766e, transparent 58%);
+}
+body[data-theme="dark"] .message-action-btn.save-shadow {
+  color: #5eead4;
+  background: color-mix(in srgb, #14b8a6, transparent 86%);
+  border-color: color-mix(in srgb, #14b8a6, transparent 68%);
+}

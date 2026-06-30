@@ -5,7 +5,7 @@ const MAX_TEXT_FILE_BYTES = 750 * 1024;
 const MAX_QUICK_ACCESS_NOTES = 120;
 const MAX_QUICK_ACCESS_CONTEXT_NOTES = 5;
 const MAX_WORK_SHELF_ITEMS = 60;
-console.info("Nexus build", window.NEXUS_BUILD || "v5.0.0-work-shelf");
+console.info("Nexus build", window.NEXUS_BUILD || "v5.1.0-shadow-check");
 const HAS_SUPABASE = false;
 const supabase = null;
 
@@ -867,6 +867,40 @@ function generateFromWorkShelf(kind) {
   els.chatForm.requestSubmit();
 }
 
+
+function buildShadowCheckPrompt(row, content = "") {
+  const conversation = currentConversation();
+  const selected = getSelectedTextInside(row);
+  const answerOrExcerpt = (selected || content || "").trim().slice(0, 7000);
+  const latestUser = getLatestUserMessageText(conversation).slice(0, 4000);
+  return `Run Nexus Shadow Check on this clinical content.
+
+Focus only on:
+- Hidden risks the user may miss
+- Missing or blind-spot data
+- What would change urgency
+- Pharmacist traps / unsafe assumptions
+- What to verify before acting
+
+Do not repeat the full answer. Do not invent patient data. Use safe pharmacist wording and mention if the case is not enough for patient-specific decisions.
+
+Original user question/case:
+${latestUser || "[not available]"}
+
+Answer or selected excerpt to audit:
+${answerOrExcerpt || "[not available]"}`;
+}
+
+function runShadowCheck(row, role, content = "") {
+  if (state.isGenerating || state.readOnlyShare) return;
+  const prompt = buildShadowCheckPrompt(row, content);
+  const extra = els.messageInput.value.trim();
+  els.messageInput.value = extra ? `${prompt}\n\nExtra instruction from user:\n${extra}` : prompt;
+  autoGrow(els.messageInput);
+  selectMode("case_analysis", false);
+  els.chatForm.requestSubmit();
+}
+
 function renderAll() {
   renderHistory();
   renderQuickAccess();
@@ -1073,6 +1107,16 @@ function createMessageNode(role, content, options = {}) {
   shelfBtn.title = "Add selected text or this message to Work Shelf";
   shelfBtn.addEventListener("click", () => saveMessageToWorkShelf(row, role, role === "assistant" ? cleanContent : content));
   actions.appendChild(shelfBtn);
+
+  if (role === "assistant") {
+    const shadowBtn = document.createElement("button");
+    shadowBtn.type = "button";
+    shadowBtn.className = "message-action-btn save-shadow";
+    shadowBtn.textContent = "Shadow";
+    shadowBtn.title = "Run Nexus Shadow Check on this answer or selected excerpt";
+    shadowBtn.addEventListener("click", () => runShadowCheck(row, role, cleanContent));
+    actions.appendChild(shadowBtn);
+  }
 
   if (role === "user" && Number.isInteger(options.index) && !state.readOnlyShare) {
     const editBtn = document.createElement("button");
