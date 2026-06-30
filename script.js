@@ -5,7 +5,7 @@ const MAX_TEXT_FILE_BYTES = 750 * 1024;
 const MAX_QUICK_ACCESS_NOTES = 120;
 const MAX_QUICK_ACCESS_CONTEXT_NOTES = 5;
 const MAX_WORK_SHELF_ITEMS = 60;
-console.info("Nexus build", window.NEXUS_BUILD || "v5.1.0-shadow-check");
+console.info("Nexus build", window.NEXUS_BUILD || "v5.1.1-sidebar-shadow-hotfix");
 const HAS_SUPABASE = false;
 const supabase = null;
 
@@ -102,7 +102,10 @@ let state = {
   quickAccess: [],
   quickAccessSearch: "",
   editingQuickAccessId: null,
-  workShelf: []
+  workShelf: [],
+  sidebarTab: localStorage.getItem("nexus_sidebar_tab") || "history",
+  pendingInternalPrompt: null,
+  pendingUserDisplay: null
 };
 
 function nowIso() {
@@ -178,7 +181,7 @@ function buildApiMessages(messages = []) {
     .slice(-MAX_CONTEXT_MESSAGES_TO_SEND)
     .map(m => ({
       role: m.role,
-      content: String(m.content || "").slice(0, 5000),
+      content: String(m.apiContent || m.content || "").slice(0, 5000),
       attachments: m.attachments || []
     }));
 }
@@ -529,34 +532,48 @@ function saveQuickAccess() {
   setLocalJson(localQuickAccessKey(), state.quickAccess.slice(0, MAX_QUICK_ACCESS_NOTES));
 }
 
+const QUICK_ACCESS_STOPWORDS = new Set([
+  "patient", "patients", "case", "drug", "drugs", "medication", "medications", "clinical", "pharmacist",
+  "question", "answer", "explain", "mechanism", "monitor", "monitoring", "check", "with", "what", "when",
+  "risk", "risks", "safe", "safety", "dose", "dosing", "tablet", "daily", "take", "taking",
+  "مريض", "دواء", "ادوية", "أدوية", "حالة", "شرح", "ايه", "إيه", "ازاي", "لازم"
+]);
+
 function tokenizeQuickText(text = "") {
   return Array.from(new Set(String(text || "")
     .toLowerCase()
     .replace(/[#*_`~()[\]{}.,:;!?،؛؟/\\|+\-=]/g, " ")
     .split(/\s+/)
     .map(token => token.trim())
-    .filter(token => token.length >= 3)
+    .filter(token => token.length >= 3 && !QUICK_ACCESS_STOPWORDS.has(token))
     .slice(0, 140)));
 }
 
 function scoreQuickAccessNote(note, text = "") {
-  const hay = `${note.title} ${(note.tags || []).join(" ")} ${note.content}`.toLowerCase();
+  const title = String(note.title || "").toLowerCase();
+  const tags = note.tags || [];
+  const content = String(note.content || "").toLowerCase();
+  const hay = `${title} ${tags.join(" ")} ${content}`;
   const tokens = tokenizeQuickText(text);
   let score = 0;
+  let strongHits = 0;
   for (const token of tokens) {
-    if ((note.tags || []).some(tag => tag.includes(token) || token.includes(tag))) score += 5;
-    if (String(note.title || "").toLowerCase().includes(token)) score += 3;
-    if (hay.includes(token)) score += 1;
+    const tagHit = tags.some(tag => tag === token || tag.includes(token) || token.includes(tag));
+    const titleHit = title.includes(token);
+    const contentHit = hay.includes(token);
+    if (tagHit) { score += 7; strongHits += 1; }
+    if (titleHit) { score += 4; strongHits += 1; }
+    if (contentHit) score += 1;
   }
-  return score;
+  return { score, strongHits };
 }
 
-function getRelevantQuickAccess(text = "", limit = 3) {
+function getRelevantQuickAccess(text = "", limit = 2) {
   const source = String(text || "").trim();
   if (!source || !state.quickAccess.length) return [];
   return state.quickAccess
-    .map(note => ({ note, score: scoreQuickAccessNote(note, source) }))
-    .filter(item => item.score >= 2)
+    .map(note => ({ note, ...scoreQuickAccessNote(note, source) }))
+    .filter(item => item.score >= 8 && item.strongHits >= 1)
     .sort((a, b) => b.score - a.score || new Date(b.note.updated_at) - new Date(a.note.updated_at))
     .slice(0, limit)
     .map(item => item.note);
@@ -568,6 +585,26 @@ function getLatestUserMessageText(conversation = currentConversation()) {
     if (messages[i]?.role === "user") return messages[i].content || "";
   }
   return "";
+}
+
+function isShadowPromptText(text = "") {
+  const t = String(text || "").trim().toLowerCase();
+  return t.startsWith("run nexus shadow check") || t.includes("focus only on:\n- hidden risks") || t.includes("answer or selected excerpt to audit");
+}
+
+function isShadowAnswerText(text = "") {
+  return /(^|\n)\s*(#{1,4}\s*)?nexus shadow check\b/i.test(String(text || ""));
+}
+
+function getLatestClinicalUserMessageText(conversation = currentConversation()) {
+  const messages = conversation?.messages || [];
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const msg = messages[i];
+    if (msg?.role !== "user") continue;
+    const content = String(msg.apiContent || msg.content || "");
+    if (!isShadowPromptText(content)) return String(msg.content || content || "");
+  }
+  return getLatestUserMessageText(conversation);
 }
 
 function buildQuickAccessContext(latestUserText = "") {
@@ -872,7 +909,7 @@ function buildShadowCheckPrompt(row, content = "") {
   const conversation = currentConversation();
   const selected = getSelectedTextInside(row);
   const answerOrExcerpt = (selected || content || "").trim().slice(0, 7000);
-  const latestUser = getLatestUserMessageText(conversation).slice(0, 4000);
+  const latestUser = getLatestClinicalUserMessageText(conversation).slice(0, 4000);
   return `Run Nexus Shadow Check on this clinical content.
 
 Focus only on:
@@ -882,7 +919,12 @@ Focus only on:
 - Pharmacist traps / unsafe assumptions
 - What to verify before acting
 
-Do not repeat the full answer. Do not invent patient data. Use safe pharmacist wording and mention if the case is not enough for patient-specific decisions.
+Rules:
+- Audit the original clinical content, not another Shadow Check.
+- If the excerpt is only a fragment, say it is insufficient and refer back to the original case.
+- Do not repeat the full answer.
+- Do not invent patient data.
+- Use safe pharmacist wording and mention if the case is not enough for patient-specific decisions.
 
 Original user question/case:
 ${latestUser || "[not available]"}
@@ -893,9 +935,20 @@ ${answerOrExcerpt || "[not available]"}`;
 
 function runShadowCheck(row, role, content = "") {
   if (state.isGenerating || state.readOnlyShare) return;
+  const selected = getSelectedTextInside(row);
+  if (isShadowAnswerText(content) && !selected) {
+    showToast("Shadow Check already ran. Use it on the original answer/case.");
+    return;
+  }
+  if (isShadowAnswerText(content) && selected && selected.trim().length < 220) {
+    showToast("Select the original clinical answer, not a short Shadow fragment.");
+    return;
+  }
   const prompt = buildShadowCheckPrompt(row, content);
   const extra = els.messageInput.value.trim();
-  els.messageInput.value = extra ? `${prompt}\n\nExtra instruction from user:\n${extra}` : prompt;
+  state.pendingInternalPrompt = extra ? `${prompt}\n\nExtra instruction from user:\n${extra}` : prompt;
+  state.pendingUserDisplay = "Run Nexus Shadow Check";
+  els.messageInput.value = "Run Nexus Shadow Check";
   autoGrow(els.messageInput);
   selectMode("case_analysis", false);
   els.chatForm.requestSubmit();
@@ -1108,7 +1161,7 @@ function createMessageNode(role, content, options = {}) {
   shelfBtn.addEventListener("click", () => saveMessageToWorkShelf(row, role, role === "assistant" ? cleanContent : content));
   actions.appendChild(shelfBtn);
 
-  if (role === "assistant") {
+  if (role === "assistant" && !isShadowAnswerText(cleanContent)) {
     const shadowBtn = document.createElement("button");
     shadowBtn.type = "button";
     shadowBtn.className = "message-action-btn save-shadow";
@@ -1222,6 +1275,13 @@ function ensureRelatedQuestions(text = "") {
 function buildFallbackRelatedQuestions(text = "") {
   const t = String(text || "").toLowerCase();
   if (isGreetingLikeAssistantContent(text)) return [];
+  if (/nexus shadow check|hidden risks|blind-spot|pharmacist traps|unsafe assumptions|urgency changers/.test(t)) {
+    return [
+      "Audit the original clinical case again with only the top 3 blind spots.",
+      "Turn these blind spots into pharmacist verification questions.",
+      "Build a short patient-safety checklist from this Shadow Check."
+    ];
+  }
   const complexCaseHits = [
     /hyperkalemia|potassium|k\+|بوتاسيوم/.test(t),
     /triple whammy|aki|acute kidney|oliguria|urine output|renal|kidney|egfr|creatinine/.test(t),
@@ -1422,10 +1482,15 @@ async function sendMessage(event) {
   }
 
   const text = els.messageInput.value.trim();
-  if (!text && !state.pendingFiles.length) return;
+  const internalPrompt = state.pendingInternalPrompt;
+  const displayText = state.pendingUserDisplay || text;
+  state.pendingInternalPrompt = null;
+  state.pendingUserDisplay = null;
+  if (!displayText && !state.pendingFiles.length) return;
 
   const attachments = await buildAttachmentPayloads(state.pendingFiles);
-  const userContent = text || "[Attached files for case analysis]";
+  const userContent = displayText || "[Attached files for case analysis]";
+  const apiContent = internalPrompt || userContent;
 
   if (Number.isInteger(state.editingMessageIndex)) {
     conversation.messages = conversation.messages.slice(0, state.editingMessageIndex);
@@ -1436,6 +1501,7 @@ async function sendMessage(event) {
   const userMessage = {
     role: "user",
     content: userContent,
+    apiContent: apiContent !== userContent ? apiContent : undefined,
     mode: state.activeMode,
     attachments,
     created_at: nowIso()
@@ -1580,7 +1646,7 @@ async function streamAssistantReply(conversation) {
         mode: state.activeMode,
         modeInstruction: MODE_META[state.activeMode].prompt,
         messages: buildApiMessages(conversation.messages),
-        quickAccessContext: buildQuickAccessContext(getLatestUserMessageText(conversation)),
+        quickAccessContext: buildQuickAccessContext(getLatestClinicalUserMessageText(conversation)),
         stream: true
       }),
       signal: state.abortController.signal
@@ -2001,6 +2067,18 @@ function closeSidebarAfterNavigation() {
   if (isMobileSidebar()) closeSidebar();
 }
 
+function setSidebarTab(tab = "history") {
+  const safe = ["history", "quick", "shelf"].includes(tab) ? tab : "history";
+  state.sidebarTab = safe;
+  localStorage.setItem("nexus_sidebar_tab", safe);
+  document.querySelectorAll("[data-sidebar-tab]").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.sidebarTab === safe);
+  });
+  document.querySelectorAll("[data-sidebar-panel]").forEach(panel => {
+    panel.classList.toggle("hidden", panel.dataset.sidebarPanel !== safe);
+  });
+}
+
 async function handleNewChatClick() {
   await createNewConversation(true);
   closeSidebarAfterNavigation();
@@ -2030,6 +2108,9 @@ function bindEvents() {
       closeSidebarAfterNavigation();
       setTimeout(() => els.messageInput.focus(), 50);
     });
+  });
+  document.querySelectorAll("[data-sidebar-tab]").forEach(btn => {
+    btn.addEventListener("click", () => setSidebarTab(btn.dataset.sidebarTab));
   });
   els.chatForm.addEventListener("submit", sendMessage);
   els.messageInput.addEventListener("input", () => autoGrow(els.messageInput));
@@ -2076,6 +2157,7 @@ function bindEvents() {
 
 async function init() {
   bindEvents();
+  setSidebarTab(state.sidebarTab);
   applyTheme(localStorage.getItem("nexus_theme") || "light");
 
   const params = new URLSearchParams(location.search);

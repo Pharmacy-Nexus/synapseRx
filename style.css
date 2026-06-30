@@ -516,3 +516,42 @@ body[data-theme="dark"] .message-action-btn.save-shadow {
   background: color-mix(in srgb, #14b8a6, transparent 86%);
   border-color: color-mix(in srgb, #14b8a6, transparent 68%);
 }
+
+
+/* v5.1.1 Sidebar organization hotfix */
+.sidebar-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  border-radius: 16px;
+}
+.sidebar-tab {
+  border: 0;
+  border-radius: 12px;
+  padding: 8px 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+.sidebar-tab.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+}
+.sidebar-tab:hover { color: var(--text); }
+.side-section[data-sidebar-panel] { min-height: 0; }
+.side-section[data-sidebar-panel].hidden { display: none !important; }
+.history-section[data-sidebar-panel="history"],
+.quick-section[data-sidebar-panel="quick"],
+.work-section[data-sidebar-panel="shelf"] {
+  flex: 1 1 auto;
+  max-height: none;
+}
+.quick-list, .work-list, .chat-history { min-height: 0; }
+.work-actions { margin-top: 4px; }
+.quick-recall { max-width: 100%; }
+.message-action-btn.save-shadow { background: var(--surface-2); }

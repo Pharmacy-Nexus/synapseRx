@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=5.1.0" />
+  <link rel="stylesheet" href="style.css?v=5.1.1" />
 </head>
 <body class="app-active" data-theme="light" data-mode="general_chat">
   <!-- v4.8.3 hard no-auth build: there is no login gate. -->
@@ -39,7 +39,13 @@
         New chat
       </button>
 
-      <section class="side-section history-section" aria-labelledby="historyTitle">
+      <nav class="sidebar-tabs" aria-label="Sidebar sections">
+        <button class="sidebar-tab active" type="button" data-sidebar-tab="history">Chats</button>
+        <button class="sidebar-tab" type="button" data-sidebar-tab="quick">Quick</button>
+        <button class="sidebar-tab" type="button" data-sidebar-tab="shelf">Shelf</button>
+      </nav>
+
+      <section class="side-section history-section" data-sidebar-panel="history" aria-labelledby="historyTitle">
         <div class="history-head">
           <div id="historyTitle" class="side-title">Chat history</div>
           <button id="toggleArchiveBtn" class="tiny-btn" type="button">Archive</button>
@@ -47,7 +53,7 @@
         <div id="chatHistory" class="chat-history" role="list"></div>
       </section>
 
-      <section class="side-section quick-section" aria-labelledby="quickTitle">
+      <section class="side-section quick-section hidden" data-sidebar-panel="quick" aria-labelledby="quickTitle">
         <div class="quick-head">
           <div>
             <div id="quickTitle" class="side-title">My Quick Access</div>
@@ -59,7 +65,7 @@
         <div id="quickAccessList" class="quick-list" role="list"></div>
       </section>
 
-      <section class="side-section work-section" aria-labelledby="workShelfTitle">
+      <section class="side-section work-section hidden" data-sidebar-panel="shelf" aria-labelledby="workShelfTitle">
         <div class="work-head">
           <div>
             <div id="workShelfTitle" class="side-title">Work Shelf</div>
@@ -167,7 +173,7 @@
     <div style="position:fixed;inset:16px;z-index:9999;background:#fff;color:#111;padding:20px;border-radius:16px;font-family:Arial">JavaScript is required to run Nexus.</div>
   </noscript>
   <script>
-    window.NEXUS_BUILD = "v5.1.0-shadow-check";
+    window.NEXUS_BUILD = "v5.1.1-sidebar-shadow-hotfix";
     window.NEXUS_API_ENDPOINT = window.NEXUS_API_ENDPOINT || "/api/chat";
     window.addEventListener("error", function(event) {
       console.error("Nexus boot error", event.error || event.message);
