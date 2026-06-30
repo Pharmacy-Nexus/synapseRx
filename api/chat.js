@@ -108,6 +108,12 @@ function attachmentContext(messages = []) {
   return blocks.length ? `\n\nAttachment context:\n${blocks.join('\n\n---\n\n')}` : '';
 }
 
+function quickAccessContext(body = {}) {
+  const text = String(body.quickAccessContext || '').trim();
+  if (!text) return '';
+  return text.slice(0, 7000);
+}
+
 function safeParseJson(text) {
   try { return JSON.parse(text); }
   catch { return null; }
@@ -178,6 +184,7 @@ module.exports = async (req, res) => {
     const selectedMode = MODE_LABELS[body.mode] ? body.mode : 'general_chat';
     const mode = resolveMode(selectedMode, detectedMode, latestUserText);
     const attachmentText = attachmentContext(messages);
+    const quickAccessText = quickAccessContext(body);
     const recentContextText = getRecentContextText(messages, 8);
 
     let parsed = localParseQuestion({ text: latestUserText, mode, data: DATA });
@@ -197,6 +204,7 @@ module.exports = async (req, res) => {
         messages,
         pipelineContext,
         attachmentText,
+        quickAccessText,
         shouldStream
       });
     } catch (error) {
