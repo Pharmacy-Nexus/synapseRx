@@ -5,7 +5,7 @@ const MAX_TEXT_FILE_BYTES = 750 * 1024;
 const MAX_QUICK_ACCESS_NOTES = 120;
 const MAX_QUICK_ACCESS_CONTEXT_NOTES = 5;
 const MAX_WORK_SHELF_ITEMS = 60;
-console.info("Nexus build", window.NEXUS_BUILD || "v5.1.0-shadow-check");
+console.info("Nexus build", window.NEXUS_BUILD || "v5.1.1-sidebar-shadow-hotfix");
 const HAS_SUPABASE = false;
 const supabase = null;
 
@@ -67,6 +67,17 @@ const els = {
   fileInput: document.getElementById("fileInput"),
   attachedFiles: document.getElementById("attachedFiles"),
   newChatTopBtn: document.getElementById("newChatTopBtn"),
+  sideAskOpenBtn: document.getElementById("sideAskOpenBtn"),
+  sideAskPanel: document.getElementById("sideAskPanel"),
+  sideAskCloseBtn: document.getElementById("sideAskCloseBtn"),
+  sideAskMessages: document.getElementById("sideAskMessages"),
+  sideAskForm: document.getElementById("sideAskForm"),
+  sideAskInput: document.getElementById("sideAskInput"),
+  sideAskSendBtn: document.getElementById("sideAskSendBtn"),
+  sideAskUseBtn: document.getElementById("sideAskUseBtn"),
+  sideAskCopyBtn: document.getElementById("sideAskCopyBtn"),
+  sideAskQuickBtn: document.getElementById("sideAskQuickBtn"),
+  selectionToolbar: document.getElementById("selectionToolbar"),
   modeSwitcher: document.getElementById("modeSwitcher"),
   toast: document.getElementById("toast"),
   quickAccessAddBtn: document.getElementById("quickAccessAddBtn"),
@@ -102,7 +113,13 @@ let state = {
   quickAccess: [],
   quickAccessSearch: "",
   editingQuickAccessId: null,
-  workShelf: []
+  workShelf: [],
+  sidebarTab: localStorage.getItem("nexus_sidebar_tab") || "history",
+  pendingInternalPrompt: null,
+  pendingUserDisplay: null,
+  sideAskLastAnswer: "",
+  sideAskLastQuestion: "",
+  selectionContext: null
 };
 
 function nowIso() {
@@ -178,7 +195,7 @@ function buildApiMessages(messages = []) {
     .slice(-MAX_CONTEXT_MESSAGES_TO_SEND)
     .map(m => ({
       role: m.role,
-      content: String(m.content || "").slice(0, 5000),
+      content: String(m.apiContent || m.content || "").slice(0, 5000),
       attachments: m.attachments || []
     }));
 }
@@ -529,34 +546,48 @@ function saveQuickAccess() {
   setLocalJson(localQuickAccessKey(), state.quickAccess.slice(0, MAX_QUICK_ACCESS_NOTES));
 }
 
+const QUICK_ACCESS_STOPWORDS = new Set([
+  "patient", "patients", "case", "drug", "drugs", "medication", "medications", "clinical", "pharmacist",
+  "question", "answer", "explain", "mechanism", "monitor", "monitoring", "check", "with", "what", "when",
+  "risk", "risks", "safe", "safety", "dose", "dosing", "tablet", "daily", "take", "taking",
+  "مريض", "دواء", "ادوية", "أدوية", "حالة", "شرح", "ايه", "إيه", "ازاي", "لازم"
+]);
+
 function tokenizeQuickText(text = "") {
   return Array.from(new Set(String(text || "")
     .toLowerCase()
     .replace(/[#*_`~()[\]{}.,:;!?،؛؟/\\|+\-=]/g, " ")
     .split(/\s+/)
     .map(token => token.trim())
-    .filter(token => token.length >= 3)
+    .filter(token => token.length >= 3 && !QUICK_ACCESS_STOPWORDS.has(token))
     .slice(0, 140)));
 }
 
 function scoreQuickAccessNote(note, text = "") {
-  const hay = `${note.title} ${(note.tags || []).join(" ")} ${note.content}`.toLowerCase();
+  const title = String(note.title || "").toLowerCase();
+  const tags = note.tags || [];
+  const content = String(note.content || "").toLowerCase();
+  const hay = `${title} ${tags.join(" ")} ${content}`;
   const tokens = tokenizeQuickText(text);
   let score = 0;
+  let strongHits = 0;
   for (const token of tokens) {
-    if ((note.tags || []).some(tag => tag.includes(token) || token.includes(tag))) score += 5;
-    if (String(note.title || "").toLowerCase().includes(token)) score += 3;
-    if (hay.includes(token)) score += 1;
+    const tagHit = tags.some(tag => tag === token || tag.includes(token) || token.includes(tag));
+    const titleHit = title.includes(token);
+    const contentHit = hay.includes(token);
+    if (tagHit) { score += 7; strongHits += 1; }
+    if (titleHit) { score += 4; strongHits += 1; }
+    if (contentHit) score += 1;
   }
-  return score;
+  return { score, strongHits };
 }
 
-function getRelevantQuickAccess(text = "", limit = 3) {
+function getRelevantQuickAccess(text = "", limit = 2) {
   const source = String(text || "").trim();
   if (!source || !state.quickAccess.length) return [];
   return state.quickAccess
-    .map(note => ({ note, score: scoreQuickAccessNote(note, source) }))
-    .filter(item => item.score >= 2)
+    .map(note => ({ note, ...scoreQuickAccessNote(note, source) }))
+    .filter(item => item.score >= 8 && item.strongHits >= 1)
     .sort((a, b) => b.score - a.score || new Date(b.note.updated_at) - new Date(a.note.updated_at))
     .slice(0, limit)
     .map(item => item.note);
@@ -568,6 +599,26 @@ function getLatestUserMessageText(conversation = currentConversation()) {
     if (messages[i]?.role === "user") return messages[i].content || "";
   }
   return "";
+}
+
+function isShadowPromptText(text = "") {
+  const t = String(text || "").trim().toLowerCase();
+  return t.startsWith("run nexus shadow check") || t.includes("focus only on:\n- hidden risks") || t.includes("answer or selected excerpt to audit");
+}
+
+function isShadowAnswerText(text = "") {
+  return /(^|\n)\s*(#{1,4}\s*)?nexus shadow check\b/i.test(String(text || ""));
+}
+
+function getLatestClinicalUserMessageText(conversation = currentConversation()) {
+  const messages = conversation?.messages || [];
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const msg = messages[i];
+    if (msg?.role !== "user") continue;
+    const content = String(msg.apiContent || msg.content || "");
+    if (!isShadowPromptText(content)) return String(msg.content || content || "");
+  }
+  return getLatestUserMessageText(conversation);
 }
 
 function buildQuickAccessContext(latestUserText = "") {
@@ -872,7 +923,7 @@ function buildShadowCheckPrompt(row, content = "") {
   const conversation = currentConversation();
   const selected = getSelectedTextInside(row);
   const answerOrExcerpt = (selected || content || "").trim().slice(0, 7000);
-  const latestUser = getLatestUserMessageText(conversation).slice(0, 4000);
+  const latestUser = getLatestClinicalUserMessageText(conversation).slice(0, 4000);
   return `Run Nexus Shadow Check on this clinical content.
 
 Focus only on:
@@ -882,7 +933,12 @@ Focus only on:
 - Pharmacist traps / unsafe assumptions
 - What to verify before acting
 
-Do not repeat the full answer. Do not invent patient data. Use safe pharmacist wording and mention if the case is not enough for patient-specific decisions.
+Rules:
+- Audit the original clinical content, not another Shadow Check.
+- If the excerpt is only a fragment, say it is insufficient and refer back to the original case.
+- Do not repeat the full answer.
+- Do not invent patient data.
+- Use safe pharmacist wording and mention if the case is not enough for patient-specific decisions.
 
 Original user question/case:
 ${latestUser || "[not available]"}
@@ -893,9 +949,20 @@ ${answerOrExcerpt || "[not available]"}`;
 
 function runShadowCheck(row, role, content = "") {
   if (state.isGenerating || state.readOnlyShare) return;
+  const selected = getSelectedTextInside(row);
+  if (isShadowAnswerText(content) && !selected) {
+    showToast("Shadow Check already ran. Use it on the original answer/case.");
+    return;
+  }
+  if (isShadowAnswerText(content) && selected && selected.trim().length < 220) {
+    showToast("Select the original clinical answer, not a short Shadow fragment.");
+    return;
+  }
   const prompt = buildShadowCheckPrompt(row, content);
   const extra = els.messageInput.value.trim();
-  els.messageInput.value = extra ? `${prompt}\n\nExtra instruction from user:\n${extra}` : prompt;
+  state.pendingInternalPrompt = extra ? `${prompt}\n\nExtra instruction from user:\n${extra}` : prompt;
+  state.pendingUserDisplay = "Run Nexus Shadow Check";
+  els.messageInput.value = "Run Nexus Shadow Check";
   autoGrow(els.messageInput);
   selectMode("case_analysis", false);
   els.chatForm.requestSubmit();
@@ -1042,6 +1109,7 @@ function welcomeNode() {
 function createMessageNode(role, content, options = {}) {
   const row = document.createElement("div");
   row.className = `message-row ${role}`;
+  row.dataset.role = role;
   if (Number.isInteger(options.index)) row.dataset.messageIndex = String(options.index);
 
   const meta = document.createElement("div");
@@ -1083,49 +1151,8 @@ function createMessageNode(role, content, options = {}) {
     body.prepend(thinking);
   }
 
-  const actions = document.createElement("div");
-  actions.className = "message-actions";
-  const copyBtn = document.createElement("button");
-  copyBtn.type = "button";
-  copyBtn.className = "message-action-btn";
-  copyBtn.textContent = "Copy";
-  copyBtn.addEventListener("click", () => copyMessageText(role === "assistant" ? (row.querySelector(".message-content")?.innerText || cleanContent) : cleanContent));
-  actions.appendChild(copyBtn);
-
-  const quickBtn = document.createElement("button");
-  quickBtn.type = "button";
-  quickBtn.className = "message-action-btn save-quick";
-  quickBtn.textContent = "Quick";
-  quickBtn.title = "Save selected text or this message to My Quick Access";
-  quickBtn.addEventListener("click", () => saveMessageToQuickAccess(row, role, role === "assistant" ? cleanContent : content));
-  actions.appendChild(quickBtn);
-
-  const shelfBtn = document.createElement("button");
-  shelfBtn.type = "button";
-  shelfBtn.className = "message-action-btn save-shelf";
-  shelfBtn.textContent = "Shelf";
-  shelfBtn.title = "Add selected text or this message to Work Shelf";
-  shelfBtn.addEventListener("click", () => saveMessageToWorkShelf(row, role, role === "assistant" ? cleanContent : content));
-  actions.appendChild(shelfBtn);
-
-  if (role === "assistant") {
-    const shadowBtn = document.createElement("button");
-    shadowBtn.type = "button";
-    shadowBtn.className = "message-action-btn save-shadow";
-    shadowBtn.textContent = "Shadow";
-    shadowBtn.title = "Run Nexus Shadow Check on this answer or selected excerpt";
-    shadowBtn.addEventListener("click", () => runShadowCheck(row, role, cleanContent));
-    actions.appendChild(shadowBtn);
-  }
-
-  if (role === "user" && Number.isInteger(options.index) && !state.readOnlyShare) {
-    const editBtn = document.createElement("button");
-    editBtn.type = "button";
-    editBtn.className = "message-action-btn";
-    editBtn.textContent = "Edit";
-    editBtn.addEventListener("click", () => startEditMessage(options.index));
-    actions.appendChild(editBtn);
-  }
+  // Message action buttons are intentionally not rendered inline.
+  // Use the contextual selection toolbar (select text in a message) for Copy, Quick, Shelf, Shadow, and Side Ask.
 
   if (role === "assistant" && !options.hideDisclaimer && options.mode !== "general_chat") {
     const disclaimer = document.createElement("div");
@@ -1136,8 +1163,137 @@ function createMessageNode(role, content, options = {}) {
 
   row.appendChild(meta);
   row.appendChild(body);
-  row.appendChild(actions);
   return row;
+}
+
+
+function getSelectionContext() {
+  const selection = window.getSelection?.();
+  const text = String(selection?.toString() || "").trim();
+  if (!selection || !text || !selection.rangeCount) return null;
+  const range = selection.getRangeAt(0);
+  const anchor = range.commonAncestorContainer?.nodeType === Node.ELEMENT_NODE
+    ? range.commonAncestorContainer
+    : range.commonAncestorContainer?.parentElement;
+  const row = anchor?.closest?.(".message-row");
+  if (!row || !els.messages?.contains(row)) return null;
+  const role = row.dataset.role || (row.classList.contains("assistant") ? "assistant" : "user");
+  const index = Number.parseInt(row.dataset.messageIndex || "", 10);
+  const fullText = row.querySelector(".message-content")?.innerText || text;
+  const rect = range.getBoundingClientRect();
+  return { text, row, role, index, fullText, rect };
+}
+
+function hideSelectionToolbar() {
+  state.selectionContext = null;
+  els.selectionToolbar?.classList.add("hidden");
+}
+
+function showSelectionToolbar() {
+  const context = getSelectionContext();
+  if (!context || context.text.length < 1) return hideSelectionToolbar();
+  state.selectionContext = context;
+  const toolbar = els.selectionToolbar;
+  if (!toolbar) return;
+  toolbar.classList.remove("hidden");
+  toolbar.querySelector('[data-selection-action="shadow"]')?.classList.toggle("hidden", context.role !== "assistant" || isShadowAnswerText(context.fullText));
+  toolbar.querySelector('[data-selection-action="edit"]')?.classList.toggle("hidden", context.role !== "user" || !Number.isInteger(context.index));
+  const toolbarRect = toolbar.getBoundingClientRect();
+  const top = Math.max(8, window.scrollY + context.rect.top - toolbarRect.height - 10);
+  const left = Math.min(
+    window.scrollX + document.documentElement.clientWidth - toolbarRect.width - 8,
+    Math.max(8, window.scrollX + context.rect.left + (context.rect.width / 2) - (toolbarRect.width / 2))
+  );
+  toolbar.style.top = `${top}px`;
+  toolbar.style.left = `${left}px`;
+}
+
+function handleSelectionAction(action = "") {
+  const context = state.selectionContext || getSelectionContext();
+  if (!context) return hideSelectionToolbar();
+  if (action === "copy") copyMessageText(context.text);
+  if (action === "quick") openQuickAccessModal(null, { title: makeTitle(context.text), tags: [], content: context.text });
+  if (action === "shelf") addWorkShelfItem(context.text, context.role);
+  if (action === "shadow") runShadowCheck(context.row, context.role, context.fullText);
+  if (action === "sideask") openSideAsk(context.text);
+  if (action === "edit" && context.role === "user" && Number.isInteger(context.index)) startEditMessage(context.index);
+  hideSelectionToolbar();
+}
+
+function openSideAsk(seed = "") {
+  els.sideAskPanel?.classList.remove("hidden");
+  if (seed && els.sideAskInput) {
+    els.sideAskInput.value = seed;
+    autoGrow(els.sideAskInput);
+  }
+  setTimeout(() => els.sideAskInput?.focus(), 30);
+}
+
+function closeSideAsk() {
+  els.sideAskPanel?.classList.add("hidden");
+}
+
+function addSideAskMessage(role, text = "") {
+  if (!els.sideAskMessages) return null;
+  const empty = els.sideAskMessages.querySelector(".sideask-empty");
+  if (empty) empty.remove();
+  const node = document.createElement("div");
+  node.className = `sideask-message ${role}`;
+  node.innerHTML = role === "assistant" ? renderMarkdown(text) : escapeHtml(text).replace(/\n/g, "<br>");
+  els.sideAskMessages.appendChild(node);
+  els.sideAskMessages.scrollTop = els.sideAskMessages.scrollHeight;
+  return node;
+}
+
+function sideAskPresetText(kind = "") {
+  const text = String(els.sideAskInput?.value || "").trim();
+  if (kind === "explain") return `Explain this briefly without changing the main chat context:\n${text}`.trim();
+  if (kind === "rewrite") return `Rewrite this as a clearer professional pharmacy question. Do not answer it yet:\n${text}`.trim();
+  if (kind === "check") return `Check what information is missing before this can be answered safely. Keep it brief:\n${text}`.trim();
+  return text;
+}
+
+async function sendSideAsk(event) {
+  event?.preventDefault?.();
+  const question = String(els.sideAskInput?.value || "").trim();
+  if (!question || state.isGenerating) return;
+  state.sideAskLastQuestion = question;
+  addSideAskMessage("user", question);
+  els.sideAskInput.value = "";
+  autoGrow(els.sideAskInput);
+  const answerNode = addSideAskMessage("assistant", "Thinking…");
+  els.sideAskSendBtn.disabled = true;
+  try {
+    const response = await fetch(API_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sideAsk: true, stream: false, question })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Side Ask failed");
+    const reply = String(data.reply || "No answer returned.").trim();
+    state.sideAskLastAnswer = reply;
+    if (answerNode) answerNode.innerHTML = renderMarkdown(reply);
+  } catch (error) {
+    if (answerNode) answerNode.textContent = error.message || "Side Ask failed.";
+  } finally {
+    els.sideAskSendBtn.disabled = false;
+  }
+}
+
+function useSideAskInMainChat() {
+  const text = state.sideAskLastAnswer || state.sideAskLastQuestion || "";
+  if (!text) return showToast("No Side Ask text yet");
+  els.messageInput.value = text;
+  autoGrow(els.messageInput);
+  els.messageInput.focus();
+  showToast("Inserted into main chat");
+}
+
+function saveSideAskToQuickAccess() {
+  const text = state.sideAskLastAnswer || state.sideAskLastQuestion || "";
+  if (!text) return showToast("No Side Ask text yet");
+  openQuickAccessModal(null, { title: makeTitle(text), tags: ["side-ask"], content: text });
 }
 
 function copyMessageText(text) {
@@ -1222,6 +1378,13 @@ function ensureRelatedQuestions(text = "") {
 function buildFallbackRelatedQuestions(text = "") {
   const t = String(text || "").toLowerCase();
   if (isGreetingLikeAssistantContent(text)) return [];
+  if (/nexus shadow check|hidden risks|blind-spot|pharmacist traps|unsafe assumptions|urgency changers/.test(t)) {
+    return [
+      "Audit the original clinical case again with only the top 3 blind spots.",
+      "Turn these blind spots into pharmacist verification questions.",
+      "Build a short patient-safety checklist from this Shadow Check."
+    ];
+  }
   const complexCaseHits = [
     /hyperkalemia|potassium|k\+|بوتاسيوم/.test(t),
     /triple whammy|aki|acute kidney|oliguria|urine output|renal|kidney|egfr|creatinine/.test(t),
@@ -1422,10 +1585,15 @@ async function sendMessage(event) {
   }
 
   const text = els.messageInput.value.trim();
-  if (!text && !state.pendingFiles.length) return;
+  const internalPrompt = state.pendingInternalPrompt;
+  const displayText = state.pendingUserDisplay || text;
+  state.pendingInternalPrompt = null;
+  state.pendingUserDisplay = null;
+  if (!displayText && !state.pendingFiles.length) return;
 
   const attachments = await buildAttachmentPayloads(state.pendingFiles);
-  const userContent = text || "[Attached files for case analysis]";
+  const userContent = displayText || "[Attached files for case analysis]";
+  const apiContent = internalPrompt || userContent;
 
   if (Number.isInteger(state.editingMessageIndex)) {
     conversation.messages = conversation.messages.slice(0, state.editingMessageIndex);
@@ -1436,6 +1604,7 @@ async function sendMessage(event) {
   const userMessage = {
     role: "user",
     content: userContent,
+    apiContent: apiContent !== userContent ? apiContent : undefined,
     mode: state.activeMode,
     attachments,
     created_at: nowIso()
@@ -1580,7 +1749,7 @@ async function streamAssistantReply(conversation) {
         mode: state.activeMode,
         modeInstruction: MODE_META[state.activeMode].prompt,
         messages: buildApiMessages(conversation.messages),
-        quickAccessContext: buildQuickAccessContext(getLatestUserMessageText(conversation)),
+        quickAccessContext: buildQuickAccessContext(getLatestClinicalUserMessageText(conversation)),
         stream: true
       }),
       signal: state.abortController.signal
@@ -2001,6 +2170,18 @@ function closeSidebarAfterNavigation() {
   if (isMobileSidebar()) closeSidebar();
 }
 
+function setSidebarTab(tab = "history") {
+  const safe = ["history", "quick", "shelf"].includes(tab) ? tab : "history";
+  state.sidebarTab = safe;
+  localStorage.setItem("nexus_sidebar_tab", safe);
+  document.querySelectorAll("[data-sidebar-tab]").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.sidebarTab === safe);
+  });
+  document.querySelectorAll("[data-sidebar-panel]").forEach(panel => {
+    panel.classList.toggle("hidden", panel.dataset.sidebarPanel !== safe);
+  });
+}
+
 async function handleNewChatClick() {
   await createNewConversation(true);
   closeSidebarAfterNavigation();
@@ -2031,6 +2212,9 @@ function bindEvents() {
       setTimeout(() => els.messageInput.focus(), 50);
     });
   });
+  document.querySelectorAll("[data-sidebar-tab]").forEach(btn => {
+    btn.addEventListener("click", () => setSidebarTab(btn.dataset.sidebarTab));
+  });
   els.chatForm.addEventListener("submit", sendMessage);
   els.messageInput.addEventListener("input", () => autoGrow(els.messageInput));
   els.messageInput.addEventListener("keydown", (event) => {
@@ -2054,6 +2238,35 @@ function bindEvents() {
   els.quickAccessSaveBtn?.addEventListener("click", saveQuickAccessFromModal);
   els.quickAccessCancelBtn?.addEventListener("click", closeQuickAccessModal);
   els.quickAccessDeleteBtn?.addEventListener("click", () => deleteQuickAccessNote());
+  els.sideAskOpenBtn?.addEventListener("click", () => openSideAsk());
+  els.sideAskCloseBtn?.addEventListener("click", closeSideAsk);
+  els.sideAskForm?.addEventListener("submit", sendSideAsk);
+  els.sideAskInput?.addEventListener("input", () => autoGrow(els.sideAskInput));
+  els.sideAskInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      els.sideAskForm?.requestSubmit();
+    }
+  });
+  document.querySelectorAll("[data-sideask-preset]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      els.sideAskInput.value = sideAskPresetText(btn.dataset.sideaskPreset);
+      autoGrow(els.sideAskInput);
+      els.sideAskInput.focus();
+    });
+  });
+  els.sideAskUseBtn?.addEventListener("click", useSideAskInMainChat);
+  els.sideAskCopyBtn?.addEventListener("click", () => copyMessageText(state.sideAskLastAnswer || state.sideAskLastQuestion));
+  els.sideAskQuickBtn?.addEventListener("click", saveSideAskToQuickAccess);
+  els.selectionToolbar?.addEventListener("mousedown", event => event.preventDefault());
+  els.selectionToolbar?.addEventListener("click", event => {
+    const btn = event.target.closest("[data-selection-action]");
+    if (btn) handleSelectionAction(btn.dataset.selectionAction);
+  });
+  document.addEventListener("mouseup", () => setTimeout(showSelectionToolbar, 0));
+  document.addEventListener("selectionchange", () => {
+    if (!String(window.getSelection?.()?.toString() || "").trim()) hideSelectionToolbar();
+  });
   els.workShelfClearBtn?.addEventListener("click", clearWorkShelf);
   document.querySelectorAll("[data-work-generate]").forEach(btn => {
     btn.addEventListener("click", () => generateFromWorkShelf(btn.dataset.workGenerate));
@@ -2063,6 +2276,7 @@ function bindEvents() {
   });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !els.quickAccessModal?.classList.contains("hidden")) closeQuickAccessModal();
+    if (event.key === "Escape" && !els.sideAskPanel?.classList.contains("hidden")) closeSideAsk();
   });
 
   els.messages.addEventListener("scroll", () => {
@@ -2076,6 +2290,7 @@ function bindEvents() {
 
 async function init() {
   bindEvents();
+  setSidebarTab(state.sidebarTab);
   applyTheme(localStorage.getItem("nexus_theme") || "light");
 
   const params = new URLSearchParams(location.search);

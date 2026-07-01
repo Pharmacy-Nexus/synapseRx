@@ -1,58 +1,52 @@
-# Nexus Clinical Pharmacist — v5.1 Shadow Check
+# Nexus Clinical Pharmacist — v5.1.1 Sidebar + Shadow Hotfix
 
-Small patch on top of v5.0 Work Shelf.
+Small patch on top of **v5.1 Shadow Check**.
 
-## What changed
+## Fixed
 
-### Nexus Shadow Check
-- Adds a deterministic `shadow_check` object inside the Evidence Brief.
-- Case Analysis / Drug Interaction prompts now ask the AI to include **Nexus Shadow Check** when relevant.
-- Shadow Check focuses on:
-  - hidden risks the pharmacist/user may miss
-  - missing or blind-spot data
-  - urgency changers
-  - pharmacist traps / unsafe assumptions
-  - monitoring focus
+- Prevents Shadow Check from auditing another Shadow Check by default.
+- Shadow button is hidden on Shadow Check responses.
+- Shadow action now shows a clean short user message instead of dumping the full internal prompt in chat.
+- Shadow prompt now uses the latest real clinical user case, not the previous Shadow prompt.
+- Suggested next questions for Shadow Check are now Shadow-related instead of unrelated hyperkalemia/AKI defaults.
+- Quick Access recall is stricter so unrelated saved notes like DOACs/lamotrigine do not appear under weakly related answers.
+- Sidebar is organized into tabs: **Chats / Quick / Shelf** instead of stacking everything at once.
 
-### Frontend tool button
-- Adds a **Shadow** button under assistant messages.
-- If the user selects part of an answer, Shadow audits only the selected excerpt.
-- If nothing is selected, Shadow audits the full answer against the latest user case.
-- It submits a focused Case Analysis prompt automatically.
+## Files changed
 
-### Backend updates
-- `lib/evidenceBrief.js`: adds `buildShadowCheck()` and includes it in `pipelineContext`.
-- `api/chat.js`: passes latest user text to the Evidence Brief and returns `X-Nexus-Shadow: enabled` when relevant.
-- `lib/composer.js`: instructs the model to produce a concise Shadow Check for complex clinical/interaction cases.
+- `index.html`
+- `style.css`
+- `script.js`
+- `README.md`
 
-## Files changed in the patch
+## Manual tests
 
+1. Ask: `Check a medication interaction and explain the mechanism.`
+2. Click **Shadow** under the assistant answer.
+   - Expected: user bubble says only `Run Nexus Shadow Check`, not the full prompt.
+3. The Shadow response should not show another **Shadow** button.
+4. Sidebar should show tabs: **Chats / Quick / Shelf**.
+5. Quick Access notes should only appear when there is a strong title/tag/content match.
+
+## v5.2 — Side Ask + Selection Actions
+
+This patch adds a separate Side Ask panel for quick side questions that should not affect the main chat context, mode switching, suggestions, Evidence Brief, or clinical thread.
+
+### Added
+- `Side Ask` button in the top bar.
+- Floating Side Ask window with Explain / Rewrite / Check presets.
+- `Use in main chat`, `Copy answer`, and `Save Quick` actions.
+- Backend `sideAsk: true` path in `/api/chat.js`.
+
+### Changed
+- Removed persistent inline message action buttons (`Copy`, `Quick`, `Shelf`, `Shadow`).
+- Added a contextual selection toolbar. Select text inside a message to show: Copy / Quick / Shelf / Shadow / Ask aside / Edit.
+- Shadow remains disabled for Shadow Check outputs to avoid recursive auditing.
+
+### Files changed
 - `index.html`
 - `style.css`
 - `script.js`
 - `api/chat.js`
 - `lib/composer.js`
-- `lib/evidenceBrief.js`
 - `README.md`
-
-## Manual test
-
-1. Ask a complex case:
-
-```txt
-Patient 72 years old with CKD, ramipril, spironolactone, furosemide, diclofenac, metformin, warfarin and amiodarone. eGFR 24, K 5.9, creatinine 1.6 to 2.4, INR 4.1, reduced urine output and bruising. What are the urgent medication-related problems?
-```
-
-Expected:
-- Normal case analysis.
-- A section called **Nexus Shadow Check** or equivalent.
-- Shadow should mention hidden renal/potassium/bleeding traps and missing data like ECG, active bleeding, urine output/volume status.
-
-2. Click **Shadow** under the assistant answer.
-
-Expected:
-- A new focused audit response with only hidden risks, missing/blind-spot data, urgency changers, and pharmacist traps.
-
-## Deploy
-
-Upload these patch files over v5.0 and redeploy on Vercel.

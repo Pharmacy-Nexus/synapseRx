@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=5.1.0" />
+  <link rel="stylesheet" href="style.css?v=5.2" />
 </head>
 <body class="app-active" data-theme="light" data-mode="general_chat">
   <!-- v4.8.3 hard no-auth build: there is no login gate. -->
@@ -39,7 +39,13 @@
         New chat
       </button>
 
-      <section class="side-section history-section" aria-labelledby="historyTitle">
+      <nav class="sidebar-tabs" aria-label="Sidebar sections">
+        <button class="sidebar-tab active" type="button" data-sidebar-tab="history">Chats</button>
+        <button class="sidebar-tab" type="button" data-sidebar-tab="quick">Quick</button>
+        <button class="sidebar-tab" type="button" data-sidebar-tab="shelf">Shelf</button>
+      </nav>
+
+      <section class="side-section history-section" data-sidebar-panel="history" aria-labelledby="historyTitle">
         <div class="history-head">
           <div id="historyTitle" class="side-title">Chat history</div>
           <button id="toggleArchiveBtn" class="tiny-btn" type="button">Archive</button>
@@ -47,7 +53,7 @@
         <div id="chatHistory" class="chat-history" role="list"></div>
       </section>
 
-      <section class="side-section quick-section" aria-labelledby="quickTitle">
+      <section class="side-section quick-section hidden" data-sidebar-panel="quick" aria-labelledby="quickTitle">
         <div class="quick-head">
           <div>
             <div id="quickTitle" class="side-title">My Quick Access</div>
@@ -59,7 +65,7 @@
         <div id="quickAccessList" class="quick-list" role="list"></div>
       </section>
 
-      <section class="side-section work-section" aria-labelledby="workShelfTitle">
+      <section class="side-section work-section hidden" data-sidebar-panel="shelf" aria-labelledby="workShelfTitle">
         <div class="work-head">
           <div>
             <div id="workShelfTitle" class="side-title">Work Shelf</div>
@@ -106,6 +112,7 @@
             <button class="mode-chip-btn" type="button" data-mode="case_analysis">Case</button>
             <button class="mode-chip-btn" type="button" data-mode="drug_reverse">Reverse</button>
           </div>
+          <button id="sideAskOpenBtn" class="btn btn-soft btn-icon-label" type="button" title="Ask aside without changing this chat" aria-label="Open Side Ask"><span>؟</span><span class="desktop-label">Side Ask</span></button>
           <button id="newChatTopBtn" class="btn btn-soft btn-icon-label" type="button" title="New chat" aria-label="New chat"><span>＋</span><span class="desktop-label">New chat</span></button>
         </div>
       </header>
@@ -163,11 +170,50 @@
   </div>
 
 
+  <div id="selectionToolbar" class="selection-toolbar hidden" role="toolbar" aria-label="Selection actions">
+    <button type="button" data-selection-action="copy">Copy</button>
+    <button type="button" data-selection-action="quick">Quick</button>
+    <button type="button" data-selection-action="shelf">Shelf</button>
+    <button type="button" data-selection-action="shadow">Shadow</button>
+    <button type="button" data-selection-action="sideask">Ask aside</button>
+    <button type="button" data-selection-action="edit" class="selection-edit">Edit</button>
+  </div>
+
+  <div id="sideAskPanel" class="sideask-panel hidden" role="dialog" aria-modal="false" aria-labelledby="sideAskTitle">
+    <div class="sideask-card">
+      <div class="sideask-head">
+        <div>
+          <div id="sideAskTitle" class="sideask-title">Nexus Side Ask</div>
+          <div class="sideask-subtitle">Ask without changing the main chat context.</div>
+        </div>
+        <button id="sideAskCloseBtn" class="icon-btn" type="button" aria-label="Close Side Ask">×</button>
+      </div>
+      <div id="sideAskMessages" class="sideask-messages" aria-live="polite">
+        <div class="sideask-empty">Use this for quick definitions, rewriting, checks, or side questions. It will not affect the main conversation.</div>
+      </div>
+      <div class="sideask-presets" aria-label="Side Ask tools">
+        <button type="button" data-sideask-preset="explain">Explain</button>
+        <button type="button" data-sideask-preset="rewrite">Rewrite</button>
+        <button type="button" data-sideask-preset="check">Check</button>
+      </div>
+      <form id="sideAskForm" class="sideask-form">
+        <textarea id="sideAskInput" rows="2" placeholder="Ask aside…"></textarea>
+        <button id="sideAskSendBtn" type="submit" aria-label="Send Side Ask">↑</button>
+      </form>
+      <div class="sideask-actions">
+        <button id="sideAskUseBtn" type="button" class="tiny-btn">Use in main chat</button>
+        <button id="sideAskCopyBtn" type="button" class="tiny-btn">Copy answer</button>
+        <button id="sideAskQuickBtn" type="button" class="tiny-btn">Save Quick</button>
+      </div>
+    </div>
+  </div>
+
+
   <noscript>
     <div style="position:fixed;inset:16px;z-index:9999;background:#fff;color:#111;padding:20px;border-radius:16px;font-family:Arial">JavaScript is required to run Nexus.</div>
   </noscript>
   <script>
-    window.NEXUS_BUILD = "v5.1.0-shadow-check";
+    window.NEXUS_BUILD = "v5.2-side-ask-selection-toolbar";
     window.NEXUS_API_ENDPOINT = window.NEXUS_API_ENDPOINT || "/api/chat";
     window.addEventListener("error", function(event) {
       console.error("Nexus boot error", event.error || event.message);
@@ -180,6 +226,6 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
-  <script type="module" src="script.js?v=5.1.0"></script>
+  <script type="module" src="script.js?v=5.2"></script>
 </body>
 </html>
