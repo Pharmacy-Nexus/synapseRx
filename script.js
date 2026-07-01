@@ -5,7 +5,7 @@ const MAX_TEXT_FILE_BYTES = 750 * 1024;
 const MAX_QUICK_ACCESS_NOTES = 120;
 const MAX_QUICK_ACCESS_CONTEXT_NOTES = 5;
 const MAX_WORK_SHELF_ITEMS = 60;
-console.info("Nexus build", window.NEXUS_BUILD || "v5.1.1-sidebar-shadow-hotfix");
+console.info("Nexus build", window.NEXUS_BUILD || "v5.2.1-sideask-polish");
 const HAS_SUPABASE = false;
 const supabase = null;
 
@@ -119,7 +119,8 @@ let state = {
   pendingUserDisplay: null,
   sideAskLastAnswer: "",
   sideAskLastQuestion: "",
-  selectionContext: null
+  selectionContext: null,
+  selectionSuppressUntil: 0
 };
 
 function nowIso() {
@@ -1167,26 +1168,46 @@ function createMessageNode(role, content, options = {}) {
 }
 
 
+function suppressSelectionToolbar(ms = 260) {
+  state.selectionSuppressUntil = Date.now() + ms;
+}
+
+function isSelectionToolbarSuppressed() {
+  return Date.now() < Number(state.selectionSuppressUntil || 0);
+}
+
 function getSelectionContext() {
+  if (isSelectionToolbarSuppressed()) return null;
   const selection = window.getSelection?.();
   const text = String(selection?.toString() || "").trim();
-  if (!selection || !text || !selection.rangeCount) return null;
+  if (!selection || !text || !selection.rangeCount || selection.isCollapsed) return null;
   const range = selection.getRangeAt(0);
   const anchor = range.commonAncestorContainer?.nodeType === Node.ELEMENT_NODE
     ? range.commonAncestorContainer
     : range.commonAncestorContainer?.parentElement;
   const row = anchor?.closest?.(".message-row");
-  if (!row || !els.messages?.contains(row)) return null;
+  const contentNode = anchor?.closest?.(".message-content");
+  if (!row || !contentNode || !els.messages?.contains(row)) return null;
+  const clientRects = Array.from(range.getClientRects()).filter(rect => rect.width > 0 && rect.height > 0);
+  const rect = clientRects[0] || range.getBoundingClientRect();
+  if (!rect || (!rect.width && !rect.height)) return null;
   const role = row.dataset.role || (row.classList.contains("assistant") ? "assistant" : "user");
   const index = Number.parseInt(row.dataset.messageIndex || "", 10);
   const fullText = row.querySelector(".message-content")?.innerText || text;
-  const rect = range.getBoundingClientRect();
   return { text, row, role, index, fullText, rect };
 }
 
-function hideSelectionToolbar() {
+function hideSelectionToolbar(options = {}) {
+  if (options.suppress) suppressSelectionToolbar(options.suppress === true ? 260 : Number(options.suppress));
   state.selectionContext = null;
-  els.selectionToolbar?.classList.add("hidden");
+  if (els.selectionToolbar) {
+    els.selectionToolbar.classList.add("hidden");
+    els.selectionToolbar.style.top = "";
+    els.selectionToolbar.style.left = "";
+  }
+  if (options.clearSelection) {
+    try { window.getSelection?.()?.removeAllRanges(); } catch {}
+  }
 }
 
 function showSelectionToolbar() {
@@ -1196,31 +1217,36 @@ function showSelectionToolbar() {
   const toolbar = els.selectionToolbar;
   if (!toolbar) return;
   toolbar.classList.remove("hidden");
-  toolbar.querySelector('[data-selection-action="shadow"]')?.classList.toggle("hidden", context.role !== "assistant" || isShadowAnswerText(context.fullText));
+  const isTinySelection = context.text.length < 18;
+  toolbar.querySelector('[data-selection-action="shadow"]')?.classList.toggle("hidden", isTinySelection || context.role !== "assistant" || isShadowAnswerText(context.fullText));
+  toolbar.querySelector('[data-selection-action="quick"]')?.classList.toggle("hidden", isTinySelection);
+  toolbar.querySelector('[data-selection-action="shelf"]')?.classList.toggle("hidden", isTinySelection);
   toolbar.querySelector('[data-selection-action="edit"]')?.classList.toggle("hidden", context.role !== "user" || !Number.isInteger(context.index));
   const toolbarRect = toolbar.getBoundingClientRect();
-  const top = Math.max(8, window.scrollY + context.rect.top - toolbarRect.height - 10);
+  let top = context.rect.top - toolbarRect.height - 10;
+  if (top < 8) top = Math.min(window.innerHeight - toolbarRect.height - 8, context.rect.bottom + 10);
   const left = Math.min(
-    window.scrollX + document.documentElement.clientWidth - toolbarRect.width - 8,
-    Math.max(8, window.scrollX + context.rect.left + (context.rect.width / 2) - (toolbarRect.width / 2))
+    document.documentElement.clientWidth - toolbarRect.width - 8,
+    Math.max(8, context.rect.left + (context.rect.width / 2) - (toolbarRect.width / 2))
   );
-  toolbar.style.top = `${top}px`;
+  toolbar.style.top = `${Math.max(8, top)}px`;
   toolbar.style.left = `${left}px`;
 }
 
 function handleSelectionAction(action = "") {
   const context = state.selectionContext || getSelectionContext();
-  if (!context) return hideSelectionToolbar();
+  if (!context) return hideSelectionToolbar({ suppress: true });
   if (action === "copy") copyMessageText(context.text);
   if (action === "quick") openQuickAccessModal(null, { title: makeTitle(context.text), tags: [], content: context.text });
   if (action === "shelf") addWorkShelfItem(context.text, context.role);
   if (action === "shadow") runShadowCheck(context.row, context.role, context.fullText);
   if (action === "sideask") openSideAsk(context.text);
   if (action === "edit" && context.role === "user" && Number.isInteger(context.index)) startEditMessage(context.index);
-  hideSelectionToolbar();
+  hideSelectionToolbar({ suppress: 420, clearSelection: action !== "shadow" });
 }
 
 function openSideAsk(seed = "") {
+  hideSelectionToolbar({ suppress: 220 });
   els.sideAskPanel?.classList.remove("hidden");
   if (seed && els.sideAskInput) {
     els.sideAskInput.value = seed;
@@ -2258,15 +2284,31 @@ function bindEvents() {
   els.sideAskUseBtn?.addEventListener("click", useSideAskInMainChat);
   els.sideAskCopyBtn?.addEventListener("click", () => copyMessageText(state.sideAskLastAnswer || state.sideAskLastQuestion));
   els.sideAskQuickBtn?.addEventListener("click", saveSideAskToQuickAccess);
-  els.selectionToolbar?.addEventListener("mousedown", event => event.preventDefault());
+  els.selectionToolbar?.addEventListener("mousedown", event => {
+    event.preventDefault();
+    suppressSelectionToolbar(120);
+  });
   els.selectionToolbar?.addEventListener("click", event => {
     const btn = event.target.closest("[data-selection-action]");
     if (btn) handleSelectionAction(btn.dataset.selectionAction);
   });
-  document.addEventListener("mouseup", () => setTimeout(showSelectionToolbar, 0));
-  document.addEventListener("selectionchange", () => {
-    if (!String(window.getSelection?.()?.toString() || "").trim()) hideSelectionToolbar();
+  document.addEventListener("pointerdown", event => {
+    if (event.target.closest("#selectionToolbar")) return;
+    if (event.target.closest(".message-content")) return;
+    hideSelectionToolbar({ suppress: 180 });
   });
+  document.addEventListener("mouseup", event => {
+    if (event.target.closest("#selectionToolbar")) return;
+    setTimeout(showSelectionToolbar, 20);
+  });
+  document.addEventListener("selectionchange", () => {
+    requestAnimationFrame(() => {
+      const selection = window.getSelection?.();
+      if (!selection || selection.isCollapsed || !String(selection.toString() || "").trim()) hideSelectionToolbar();
+    });
+  });
+  window.addEventListener("scroll", () => hideSelectionToolbar({ suppress: 160 }), { passive: true });
+  els.messages?.addEventListener("scroll", () => hideSelectionToolbar({ suppress: 160 }), { passive: true });
   els.workShelfClearBtn?.addEventListener("click", clearWorkShelf);
   document.querySelectorAll("[data-work-generate]").forEach(btn => {
     btn.addEventListener("click", () => generateFromWorkShelf(btn.dataset.workGenerate));
@@ -2275,6 +2317,7 @@ function bindEvents() {
     if (event.target === els.quickAccessModal) closeQuickAccessModal();
   });
   document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") hideSelectionToolbar({ suppress: 250, clearSelection: true });
     if (event.key === "Escape" && !els.quickAccessModal?.classList.contains("hidden")) closeQuickAccessModal();
     if (event.key === "Escape" && !els.sideAskPanel?.classList.contains("hidden")) closeSideAsk();
   });

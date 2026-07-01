@@ -112,7 +112,10 @@
             <button class="mode-chip-btn" type="button" data-mode="case_analysis">Case</button>
             <button class="mode-chip-btn" type="button" data-mode="drug_reverse">Reverse</button>
           </div>
-          <button id="sideAskOpenBtn" class="btn btn-soft btn-icon-label" type="button" title="Ask aside without changing this chat" aria-label="Open Side Ask"><span>؟</span><span class="desktop-label">Side Ask</span></button>
+          <button id="sideAskOpenBtn" class="sideask-launch" type="button" title="Ask aside without changing this chat" aria-label="Open Side Ask">
+            <span class="sideask-launch-icon">✦</span>
+            <span class="sideask-launch-text"><strong>Side Ask</strong><small>isolated</small></span>
+          </button>
           <button id="newChatTopBtn" class="btn btn-soft btn-icon-label" type="button" title="New chat" aria-label="New chat"><span>＋</span><span class="desktop-label">New chat</span></button>
         </div>
       </header>
@@ -181,20 +184,31 @@
 
   <div id="sideAskPanel" class="sideask-panel hidden" role="dialog" aria-modal="false" aria-labelledby="sideAskTitle">
     <div class="sideask-card">
+      <div class="sideask-glow" aria-hidden="true"></div>
       <div class="sideask-head">
-        <div>
-          <div id="sideAskTitle" class="sideask-title">Nexus Side Ask</div>
-          <div class="sideask-subtitle">Ask without changing the main chat context.</div>
+        <div class="sideask-brand">
+          <div class="sideask-logo">✦</div>
+          <div>
+            <div id="sideAskTitle" class="sideask-title">Nexus Side Ask</div>
+            <div class="sideask-subtitle">Ask a side question without touching the main case.</div>
+          </div>
         </div>
-        <button id="sideAskCloseBtn" class="icon-btn" type="button" aria-label="Close Side Ask">×</button>
+        <div class="sideask-head-actions">
+          <span class="sideask-status">Isolated</span>
+          <button id="sideAskCloseBtn" class="sideask-close" type="button" aria-label="Close Side Ask">×</button>
+        </div>
       </div>
       <div id="sideAskMessages" class="sideask-messages" aria-live="polite">
-        <div class="sideask-empty">Use this for quick definitions, rewriting, checks, or side questions. It will not affect the main conversation.</div>
+        <div class="sideask-empty">
+          <strong>Quick scratch assistant</strong>
+          <span>Use it for definitions, rewriting, safety checks, translation, or quick notes. It will not change the main chat.</span>
+          <div class="sideask-empty-chips"><span>CYP?</span><span>Rewrite</span><span>Missing data?</span></div>
+        </div>
       </div>
       <div class="sideask-presets" aria-label="Side Ask tools">
-        <button type="button" data-sideask-preset="explain">Explain</button>
-        <button type="button" data-sideask-preset="rewrite">Rewrite</button>
-        <button type="button" data-sideask-preset="check">Check</button>
+        <button type="button" data-sideask-preset="explain">✦ Explain</button>
+        <button type="button" data-sideask-preset="rewrite">↻ Rewrite</button>
+        <button type="button" data-sideask-preset="check">✓ Check</button>
       </div>
       <form id="sideAskForm" class="sideask-form">
         <textarea id="sideAskInput" rows="2" placeholder="Ask aside…"></textarea>
@@ -213,7 +227,7 @@
     <div style="position:fixed;inset:16px;z-index:9999;background:#fff;color:#111;padding:20px;border-radius:16px;font-family:Arial">JavaScript is required to run Nexus.</div>
   </noscript>
   <script>
-    window.NEXUS_BUILD = "v5.2-side-ask-selection-toolbar";
+    window.NEXUS_BUILD = "v5.2.1-sideask-polish";
     window.NEXUS_API_ENDPOINT = window.NEXUS_API_ENDPOINT || "/api/chat";
     window.addEventListener("error", function(event) {
       console.error("Nexus boot error", event.error || event.message);

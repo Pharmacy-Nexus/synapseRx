@@ -50,3 +50,36 @@ This patch adds a separate Side Ask panel for quick side questions that should n
 - `api/chat.js`
 - `lib/composer.js`
 - `README.md`
+
+## v5.2.1 — Side Ask Polish + Selection Toolbar Fix
+
+Small patch on top of **v5.2 Side Ask**.
+
+### Fixed
+- Selection toolbar now hides properly after actions.
+- Toolbar hides when clicking outside messages, scrolling, pressing Escape, or clearing selection.
+- Prevented the toolbar from reappearing after clicking Copy / Quick / Shelf / Shadow / Ask aside.
+- Very short selections now show only lightweight actions instead of the full toolbar.
+
+### Improved
+- Redesigned the Side Ask top-bar button as a clearer isolated assistant launcher.
+- Redesigned the Side Ask panel with a cleaner premium card, status badge, examples, better spacing, and smoother animation.
+- Side Ask remains isolated from the main chat context and does not affect mode, suggestions, or Evidence Brief.
+
+### Files changed
+- `index.html`
+- `style.css`
+- `script.js`
+- `README.md`
+
+### Manual tests
+1. Select text inside an assistant message.
+   - Expected: toolbar appears near selected text.
+2. Click **Copy**.
+   - Expected: text copies and toolbar disappears immediately.
+3. Select text, then click anywhere outside the message.
+   - Expected: toolbar disappears.
+4. Select text, then scroll the chat.
+   - Expected: toolbar disappears.
+5. Open **Side Ask**.
+   - Expected: polished isolated Side Ask panel opens and focuses the input.
