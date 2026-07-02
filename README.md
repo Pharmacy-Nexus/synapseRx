@@ -1,3 +1,19 @@
+# Nexus Clinical Pharmacist — v5.3 Side Ask + Natural Tone Patch
+
+This package keeps the no-auth Vercel build, but fixes the Side Ask behavior and makes assistant replies less robotic in normal chat.
+
+## What changed in v5.3
+
+- Rebuilt files into the correct deploy structure: `api/`, `lib/`, and `data/`.
+- Polished Side Ask copy and styling so it feels like a premium scratchpad, not a rough popup.
+- Side Ask now has its own generating state, so it does not depend on the main chat generation state.
+- Clicking outside Side Ask closes it reliably; `Send to main input` also closes it after inserting text.
+- Side Ask action buttons are disabled until there is text to use/copy/save.
+- Composer prompts now ask the model to match the user language and sound natural while keeping safety rules.
+- Vercel config is unchanged and still routes `/api/chat`.
+
+---
+
 # Nexus Clinical Pharmacist — v5.1.1 Sidebar + Shadow Hotfix
 
 Small patch on top of **v5.1 Shadow Check**.
@@ -83,3 +99,19 @@ Small patch on top of **v5.2 Side Ask**.
    - Expected: toolbar disappears.
 5. Open **Side Ask**.
    - Expected: polished isolated Side Ask panel opens and focuses the input.
+
+## v5.4 — Soft Scope Guard + Natural Follow-ups
+
+This patch makes Nexus less rigid in normal conversation.
+
+### Fixed
+- The scope guard no longer blocks ambiguous or short follow-up messages such as `why?`, `طيب البديل؟`, `ينفع؟`, or Arabic conversational follow-ups when the recent context is medical/pharmacy-related.
+- Unknown drug/product names are less likely to be rejected before reaching the AI composer.
+- Out-of-scope is now reserved for clearly unrelated requests instead of every weak keyword match.
+- Composer prompt now explicitly tells the model to speak naturally, match Arabic/Egyptian Arabic when practical, and continue context-aware discussion.
+
+### Files changed
+- `api/chat.js`
+- `lib/detector.js`
+- `lib/composer.js`
+- `README.md`

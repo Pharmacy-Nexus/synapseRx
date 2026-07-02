@@ -825,3 +825,83 @@ body[data-theme="dark"] .selection-toolbar [data-selection-action="sideask"] { c
   .sideask-head { align-items: flex-start; }
   .sideask-status { display: none; }
 }
+
+
+/* v5.3 — Side Ask premium polish + reliable close behavior */
+.sideask-launch {
+  position: relative;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--accent-border), var(--line) 42%);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--surface), transparent 0%), color-mix(in srgb, var(--accent-soft), var(--surface) 78%));
+  box-shadow: 0 14px 36px color-mix(in srgb, var(--accent), transparent 88%);
+}
+.sideask-launch::after {
+  content: "";
+  position: absolute;
+  inset: -45% auto auto -20%;
+  width: 70px;
+  height: 70px;
+  border-radius: 999px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent-2), transparent 62%), transparent 64%);
+  pointer-events: none;
+}
+.sideask-launch-icon {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff;
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--accent), transparent 74%);
+}
+.sideask-panel {
+  isolation: isolate;
+  filter: drop-shadow(0 28px 60px rgba(15, 23, 42, .18));
+}
+.sideask-card {
+  border-radius: 28px;
+  border: 1px solid color-mix(in srgb, var(--accent-border), var(--line) 38%);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface), transparent 0%) 0%, color-mix(in srgb, var(--surface), var(--surface-2) 24%) 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.45);
+}
+body[data-theme="dark"] .sideask-card { box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
+.sideask-head {
+  border-bottom: 1px solid color-mix(in srgb, var(--line), transparent 20%);
+  background:
+    radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--accent), transparent 84%), transparent 13rem),
+    linear-gradient(135deg, color-mix(in srgb, var(--surface), transparent 0%), color-mix(in srgb, var(--surface-2), transparent 0%));
+}
+.sideask-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: white;
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--accent), transparent 74%);
+}
+.sideask-title { letter-spacing: -.045em; }
+.sideask-status {
+  border-color: color-mix(in srgb, var(--accent-border), var(--line) 55%);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.sideask-message {
+  border: 1px solid color-mix(in srgb, var(--line), transparent 8%);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, .045);
+}
+.sideask-message.assistant {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--surface), transparent 0%), color-mix(in srgb, var(--surface-2), transparent 0%));
+}
+.sideask-message.loading {
+  color: var(--muted);
+  background: var(--surface-2);
+}
+.sideask-actions button:disabled,
+#sideAskSendBtn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  transform: none;
+}
+body.sideask-open .sideask-launch {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+}

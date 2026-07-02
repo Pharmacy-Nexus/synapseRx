@@ -5,7 +5,7 @@ const MAX_TEXT_FILE_BYTES = 750 * 1024;
 const MAX_QUICK_ACCESS_NOTES = 120;
 const MAX_QUICK_ACCESS_CONTEXT_NOTES = 5;
 const MAX_WORK_SHELF_ITEMS = 60;
-console.info("Nexus build", window.NEXUS_BUILD || "v5.2.1-sideask-polish");
+console.info("Nexus build", window.NEXUS_BUILD || "v5.3-sideask-natural");
 const HAS_SUPABASE = false;
 const supabase = null;
 
@@ -119,6 +119,7 @@ let state = {
   pendingUserDisplay: null,
   sideAskLastAnswer: "",
   sideAskLastQuestion: "",
+  sideAskGenerating: false,
   selectionContext: null,
   selectionSuppressUntil: 0
 };
@@ -1248,23 +1249,35 @@ function handleSelectionAction(action = "") {
 function openSideAsk(seed = "") {
   hideSelectionToolbar({ suppress: 220 });
   els.sideAskPanel?.classList.remove("hidden");
+  document.body.classList.add("sideask-open");
   if (seed && els.sideAskInput) {
-    els.sideAskInput.value = seed;
+    const prefix = seed.length > 220 ? "Ask about this selected text:\n" : "";
+    els.sideAskInput.value = `${prefix}${seed}`.trim();
     autoGrow(els.sideAskInput);
   }
+  updateSideAskActions();
   setTimeout(() => els.sideAskInput?.focus(), 30);
 }
 
 function closeSideAsk() {
   els.sideAskPanel?.classList.add("hidden");
+  document.body.classList.remove("sideask-open");
 }
 
-function addSideAskMessage(role, text = "") {
+function updateSideAskActions() {
+  const hasText = Boolean(state.sideAskLastAnswer || state.sideAskLastQuestion);
+  [els.sideAskUseBtn, els.sideAskCopyBtn, els.sideAskQuickBtn].forEach(btn => {
+    if (btn) btn.disabled = !hasText || state.sideAskGenerating;
+  });
+  if (els.sideAskSendBtn) els.sideAskSendBtn.disabled = state.sideAskGenerating;
+}
+
+function addSideAskMessage(role, text = "", options = {}) {
   if (!els.sideAskMessages) return null;
   const empty = els.sideAskMessages.querySelector(".sideask-empty");
   if (empty) empty.remove();
   const node = document.createElement("div");
-  node.className = `sideask-message ${role}`;
+  node.className = `sideask-message ${role}${options.loading ? " loading" : ""}`;
   node.innerHTML = role === "assistant" ? renderMarkdown(text) : escapeHtml(text).replace(/\n/g, "<br>");
   els.sideAskMessages.appendChild(node);
   els.sideAskMessages.scrollTop = els.sideAskMessages.scrollHeight;
@@ -1273,22 +1286,27 @@ function addSideAskMessage(role, text = "") {
 
 function sideAskPresetText(kind = "") {
   const text = String(els.sideAskInput?.value || "").trim();
-  if (kind === "explain") return `Explain this briefly without changing the main chat context:\n${text}`.trim();
-  if (kind === "rewrite") return `Rewrite this as a clearer professional pharmacy question. Do not answer it yet:\n${text}`.trim();
-  if (kind === "check") return `Check what information is missing before this can be answered safely. Keep it brief:\n${text}`.trim();
+  if (kind === "explain") return `Explain this briefly in a natural way. Keep it separate from the main chat:
+${text}`.trim();
+  if (kind === "rewrite") return `Rewrite this so it sounds clear, professional, and human. Do not answer it yet:
+${text}`.trim();
+  if (kind === "check") return `Check what is missing or unsafe before answering this. Keep it practical:
+${text}`.trim();
   return text;
 }
 
 async function sendSideAsk(event) {
   event?.preventDefault?.();
   const question = String(els.sideAskInput?.value || "").trim();
-  if (!question || state.isGenerating) return;
+  if (!question || state.sideAskGenerating) return;
   state.sideAskLastQuestion = question;
+  state.sideAskLastAnswer = "";
   addSideAskMessage("user", question);
   els.sideAskInput.value = "";
   autoGrow(els.sideAskInput);
-  const answerNode = addSideAskMessage("assistant", "Thinking…");
-  els.sideAskSendBtn.disabled = true;
+  const answerNode = addSideAskMessage("assistant", "Thinking…", { loading: true });
+  state.sideAskGenerating = true;
+  updateSideAskActions();
   try {
     const response = await fetch(API_ENDPOINT, {
       method: "POST",
@@ -1299,11 +1317,18 @@ async function sendSideAsk(event) {
     if (!response.ok) throw new Error(data.error || "Side Ask failed");
     const reply = String(data.reply || "No answer returned.").trim();
     state.sideAskLastAnswer = reply;
-    if (answerNode) answerNode.innerHTML = renderMarkdown(reply);
+    if (answerNode) {
+      answerNode.classList.remove("loading");
+      answerNode.innerHTML = renderMarkdown(reply);
+    }
   } catch (error) {
-    if (answerNode) answerNode.textContent = error.message || "Side Ask failed.";
+    if (answerNode) {
+      answerNode.classList.remove("loading");
+      answerNode.textContent = error.message || "Side Ask failed.";
+    }
   } finally {
-    els.sideAskSendBtn.disabled = false;
+    state.sideAskGenerating = false;
+    updateSideAskActions();
   }
 }
 
@@ -1312,8 +1337,9 @@ function useSideAskInMainChat() {
   if (!text) return showToast("No Side Ask text yet");
   els.messageInput.value = text;
   autoGrow(els.messageInput);
+  closeSideAsk();
   els.messageInput.focus();
-  showToast("Inserted into main chat");
+  showToast("Moved to main input");
 }
 
 function saveSideAskToQuickAccess() {
@@ -2267,6 +2293,7 @@ function bindEvents() {
   els.sideAskOpenBtn?.addEventListener("click", () => openSideAsk());
   els.sideAskCloseBtn?.addEventListener("click", closeSideAsk);
   els.sideAskForm?.addEventListener("submit", sendSideAsk);
+  updateSideAskActions();
   els.sideAskInput?.addEventListener("input", () => autoGrow(els.sideAskInput));
   els.sideAskInput?.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
@@ -2294,6 +2321,8 @@ function bindEvents() {
   });
   document.addEventListener("pointerdown", event => {
     if (event.target.closest("#selectionToolbar")) return;
+    if (event.target.closest("#sideAskPanel") || event.target.closest("#sideAskOpenBtn")) return;
+    if (!els.sideAskPanel?.classList.contains("hidden")) closeSideAsk();
     if (event.target.closest(".message-content")) return;
     hideSelectionToolbar({ suppress: 180 });
   });

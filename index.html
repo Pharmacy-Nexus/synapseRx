@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0f172a" />
+  <meta name="theme-color" content="#0b1220" />
   <title>Nexus Clinical Pharmacist</title>
 
   <script>
@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=5.2" />
+  <link rel="stylesheet" href="style.css?v=5.3" />
 </head>
 <body class="app-active" data-theme="light" data-mode="general_chat">
   <!-- v4.8.3 hard no-auth build: there is no login gate. -->
@@ -114,7 +114,7 @@
           </div>
           <button id="sideAskOpenBtn" class="sideask-launch" type="button" title="Ask aside without changing this chat" aria-label="Open Side Ask">
             <span class="sideask-launch-icon">✦</span>
-            <span class="sideask-launch-text"><strong>Side Ask</strong><small>isolated</small></span>
+            <span class="sideask-launch-text"><strong>Side Ask</strong><small>scratchpad</small></span>
           </button>
           <button id="newChatTopBtn" class="btn btn-soft btn-icon-label" type="button" title="New chat" aria-label="New chat"><span>＋</span><span class="desktop-label">New chat</span></button>
         </div>
@@ -189,20 +189,20 @@
         <div class="sideask-brand">
           <div class="sideask-logo">✦</div>
           <div>
-            <div id="sideAskTitle" class="sideask-title">Nexus Side Ask</div>
-            <div class="sideask-subtitle">Ask a side question without touching the main case.</div>
+            <div id="sideAskTitle" class="sideask-title">Side Ask</div>
+            <div class="sideask-subtitle">A separate scratchpad. Main chat stays clean.</div>
           </div>
         </div>
         <div class="sideask-head-actions">
-          <span class="sideask-status">Isolated</span>
+          <span class="sideask-status">Context-free</span>
           <button id="sideAskCloseBtn" class="sideask-close" type="button" aria-label="Close Side Ask">×</button>
         </div>
       </div>
       <div id="sideAskMessages" class="sideask-messages" aria-live="polite">
         <div class="sideask-empty">
-          <strong>Quick scratch assistant</strong>
-          <span>Use it for definitions, rewriting, safety checks, translation, or quick notes. It will not change the main chat.</span>
-          <div class="sideask-empty-chips"><span>CYP?</span><span>Rewrite</span><span>Missing data?</span></div>
+          <strong>Ask anything on the side</strong>
+          <span>Explain a term, rewrite wording, or check missing safety data without adding noise to the case thread.</span>
+          <div class="sideask-empty-chips"><span>Explain</span><span>Rewrite</span><span>Safety check</span></div>
         </div>
       </div>
       <div class="sideask-presets" aria-label="Side Ask tools">
@@ -215,8 +215,8 @@
         <button id="sideAskSendBtn" type="submit" aria-label="Send Side Ask">↑</button>
       </form>
       <div class="sideask-actions">
-        <button id="sideAskUseBtn" type="button" class="tiny-btn">Use in main chat</button>
-        <button id="sideAskCopyBtn" type="button" class="tiny-btn">Copy answer</button>
+        <button id="sideAskUseBtn" type="button" class="tiny-btn">Send to main input</button>
+        <button id="sideAskCopyBtn" type="button" class="tiny-btn">Copy</button>
         <button id="sideAskQuickBtn" type="button" class="tiny-btn">Save Quick</button>
       </div>
     </div>
@@ -227,7 +227,7 @@
     <div style="position:fixed;inset:16px;z-index:9999;background:#fff;color:#111;padding:20px;border-radius:16px;font-family:Arial">JavaScript is required to run Nexus.</div>
   </noscript>
   <script>
-    window.NEXUS_BUILD = "v5.2.1-sideask-polish";
+    window.NEXUS_BUILD = "v5.3-sideask-natural";
     window.NEXUS_API_ENDPOINT = window.NEXUS_API_ENDPOINT || "/api/chat";
     window.addEventListener("error", function(event) {
       console.error("Nexus boot error", event.error || event.message);
