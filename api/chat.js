@@ -193,7 +193,8 @@ module.exports = async (req, res) => {
       return shouldStream ? sendPlainText(res, reply) : res.status(200).json({ mode: 'case_analysis', risk: 'clarification_needed', reply });
     }
 
-    if (!isMedicalInScope(latestUserText, DATA)) {
+    const recentContextForScope = getRecentContextText(messages, 8);
+    if (!isMedicalInScope(latestUserText, DATA, recentContextForScope)) {
       const reply = outOfScopeReply(latestUserText);
       res.setHeader('X-Nexus-Mode', 'scope_guard');
       res.setHeader('X-Nexus-Risk', 'none');
@@ -205,7 +206,7 @@ module.exports = async (req, res) => {
     const mode = resolveMode(selectedMode, detectedMode, latestUserText);
     const attachmentText = attachmentContext(messages);
     const quickAccessText = quickAccessContext(body);
-    const recentContextText = getRecentContextText(messages, 8);
+    const recentContextText = recentContextForScope;
 
     let parsed = localParseQuestion({ text: latestUserText, mode, data: DATA });
     parsed.drugs = normalizeDrugList(parsed.drugs || [], DATA);
