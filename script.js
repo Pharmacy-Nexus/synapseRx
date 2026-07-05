@@ -1416,6 +1416,8 @@ function cleanAssistantVisibleContent(text = "") {
 }
 
 function ensureRelatedQuestions(text = "") {
+  if (/out of scope|outside that workspace|I can only help with medical/i.test(String(content || ''))) return [];
+
   const extracted = extractRelatedQuestions(text);
   if (extracted.length >= 3) return extracted.slice(0, 3);
   const fallback = buildFallbackRelatedQuestions(text);
@@ -1818,6 +1820,11 @@ async function streamAssistantReply(conversation) {
       assistantMessage.mode = serverMode;
       conversation.mode = serverMode;
     }
+    if (serverMode === "scope_guard" || response.headers.get("X-Nexus-Hide-Suggestions") === "true") {
+      assistantMessage.mode = serverMode || assistantMessage.mode;
+      assistantMessage.hideSuggestions = true;
+      assistantMessage.hideDisclaimer = true;
+    }
 
     const contentType = response.headers.get("content-type") || "";
     if (response.body && !contentType.includes("application/json")) {
@@ -1877,6 +1884,10 @@ async function streamAssistantReply(conversation) {
     } else {
       const data = await response.json();
       assistantMessage.content = data.reply || "### Temporary response issue\nNexus did not receive text from the model for this turn. Please resend the question or choose a suggested clinical prompt below.";
+      if (data.hideSuggestions || data.mode === "scope_guard") {
+        assistantMessage.hideSuggestions = true;
+        assistantMessage.hideDisclaimer = true;
+      }
       assistantMessage.thinkingTime = (performance.now() - start) / 1000;
       assistantBody.classList.add("streaming");
       await typeText(assistantMessage.content, assistantBody, assistantMessage);

@@ -115,3 +115,39 @@ This patch makes Nexus less rigid in normal conversation.
 - `lib/detector.js`
 - `lib/composer.js`
 - `README.md`
+
+## v5.5 — Continuation + Scope Stability Fix
+
+This patch focuses on the bug where Nexus sometimes answered `Out of scope` after a valid clinical follow-up such as "continue", "فين تكملة الحالة", or a clipped phrase from the previous answer.
+
+### Fixed
+- Added continuation/resume detection for Arabic and English follow-ups.
+- Expanded medical scope terms for AKI, CKD, eGFR, QTc, Hb, nephrotoxins, fluid management, bleeding, and escalation language.
+- Continuation requests now use recent clinical context for mode detection and parsing.
+- Continuation prompts now tell the composer to resume from the cutoff point instead of restarting or refusing.
+- Increased default `NVIDIA_MAX_TOKENS` from 850 to 1600 to reduce clipped long case answers.
+- Increased default composer timeout from 25s to 35s.
+- Out-of-scope responses no longer show unrelated suggested questions.
+
+### Files changed
+- `api/chat.js`
+- `lib/detector.js`
+- `lib/parser.js`
+- `lib/composer.js`
+- `script.js`
+- `README.md`
+
+## v5.6 — Side Ask API Connection Fix
+
+Fixed Side Ask backend routing.
+
+### Fixed
+- `/api/chat.js` now handles `{ sideAsk: true, question }` before requiring `messages`.
+- This matches the frontend Side Ask request, which intentionally sends a side question without main chat context.
+- Prevents Side Ask from failing with `No user message found.` even though the Side Ask question exists.
+
+### Test
+1. Open Side Ask.
+2. Type: `Explain why empagliflozin is risky during dehydration.`
+3. Expected: Side Ask returns an AI answer from the backend.
+4. Main chat history/context should remain unchanged.
