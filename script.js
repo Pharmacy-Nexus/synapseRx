@@ -1416,7 +1416,7 @@ function cleanAssistantVisibleContent(text = "") {
 }
 
 function ensureRelatedQuestions(text = "") {
-  if (/out of scope|outside that workspace|I can only help with medical/i.test(String(content || ''))) return [];
+  if (/out of scope|outside that workspace|I can only help with medical/i.test(String(text || ''))) return [];
 
   const extracted = extractRelatedQuestions(text);
   if (extracted.length >= 3) return extracted.slice(0, 3);
@@ -1919,11 +1919,32 @@ async function streamAssistantReply(conversation) {
 }
 
 function finalizeAssistantNode(body, message) {
-  const related = message.hideSuggestions ? [] : ensureRelatedQuestions(message.content);
-  body.innerHTML = renderMarkdown(cleanAssistantVisibleContent(message.content));
+  // Defensive rendering: UI helpers must never break the assistant answer.
+  const rawContent = String(message?.content || "");
+  let related = [];
+  try {
+    related = message.hideSuggestions ? [] : ensureRelatedQuestions(rawContent);
+  } catch (error) {
+    console.warn("Related-question rendering skipped:", error);
+    related = [];
+  }
+
+  try {
+    body.innerHTML = renderMarkdown(cleanAssistantVisibleContent(rawContent));
+  } catch (error) {
+    console.warn("Markdown rendering failed, using escaped text:", error);
+    body.innerHTML = escapeHtml(rawContent).replace(/\n/g, "<br>");
+  }
+
   if (related.length) body.appendChild(createRelatedQuestionsNode(related));
-  const recall = createQuickRecallNode(message.content);
-  if (recall) body.appendChild(recall);
+
+  try {
+    const recall = createQuickRecallNode(rawContent);
+    if (recall) body.appendChild(recall);
+  } catch (error) {
+    console.warn("Quick recall rendering skipped:", error);
+  }
+
   if (message.thinkingTime && !message.hideThinkingTime) {
     const thinking = document.createElement("div");
     thinking.className = "thinking-time";
