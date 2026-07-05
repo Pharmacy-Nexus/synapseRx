@@ -1,4 +1,5 @@
 const API_ENDPOINT = window.NEXUS_API_ENDPOINT || "/api/chat";
+const SIDE_ASK_ENDPOINT = window.NEXUS_SIDEASK_ENDPOINT || (API_ENDPOINT.endsWith("/api/chat") ? API_ENDPOINT.replace(/\/api\/chat$/, "/api/side-ask") : "/api/side-ask");
 const MAX_CONTEXT_MESSAGES_TO_SEND = 16;
 const MAX_ATTACHMENTS = 4;
 const MAX_TEXT_FILE_BYTES = 750 * 1024;
@@ -1308,12 +1309,30 @@ async function sendSideAsk(event) {
   state.sideAskGenerating = true;
   updateSideAskActions();
   try {
-    const response = await fetch(API_ENDPOINT, {
+    let response = await fetch(SIDE_ASK_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sideAsk: true, stream: false, question })
+      body: JSON.stringify({ question })
     });
-    const data = await response.json().catch(() => ({}));
+    // Safety fallback: if the dedicated Side Ask route is missing or fails at the route level,
+    // retry through the stable main API sideAsk path without polluting main chat context.
+    if (!response.ok && [404, 405, 500, 502, 504].includes(response.status)) {
+      try {
+        response = await fetch(API_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sideAsk: true, stream: false, question })
+        });
+      } catch {}
+    }
+    const raw = await response.text();
+    let data = {};
+    try { data = raw ? JSON.parse(raw) : {}; }
+    catch {
+      throw new Error(raw.trim().startsWith("<")
+        ? "Side Ask API route is not available. Deploy on Vercel or set window.NEXUS_SIDEASK_ENDPOINT to your deployed /api/side-ask URL."
+        : "Side Ask returned a non-JSON response.");
+    }
     if (!response.ok) throw new Error(data.error || "Side Ask failed");
     const reply = String(data.reply || "No answer returned.").trim();
     state.sideAskLastAnswer = reply;
