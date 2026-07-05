@@ -1,5 +1,5 @@
 const { loadClinicalData } = require('../lib/data');
-const { detectModeFromText, isGeneralKnowledgeQuestion, isMedicalInScope, isShortGreeting, greetingReply, isVagueHumanQuestion, vagueHumanClarificationReply, outOfScopeReply } = require('../lib/detector');
+const { detectModeFromText, isGeneralKnowledgeQuestion, isMedicalInScope, isShortGreeting, greetingReply, isVagueHumanQuestion, vagueHumanClarificationReply, isContinuationRequest, outOfScopeReply } = require('../lib/detector');
 const { localParseQuestion, inheritContextIfNeeded, getRecentContextText, inferMissingInfo } = require('../lib/parser');
 const { normalizeDrugList } = require('../lib/normalizer');
 const { retrieveEvidence, triageRisk } = require('../lib/engines');
@@ -154,13 +154,12 @@ module.exports = async (req, res) => {
   try {
     const body = await parseRequestBody(req);
     const messages = Array.isArray(body.messages) ? body.messages : [];
-    const latestUserText = getLatestUserText(messages);
-    if (!latestUserText) return res.status(400).json({ error: 'No user message found.' });
 
-    const shouldStream = body.stream !== false;
-
+    // Side Ask is intentionally independent from the main chat payload.
+    // The frontend sends { sideAsk: true, question } without messages, so handle it
+    // before requiring a latest main-chat user message.
     if (body.sideAsk === true) {
-      const question = String(body.question || latestUserText || '').trim();
+      const question = String(body.question || '').trim();
       if (!question) return res.status(400).json({ error: 'No Side Ask question found.' });
       try {
         const upstream = await callSideAskModel({ question });
@@ -178,6 +177,10 @@ module.exports = async (req, res) => {
       }
     }
 
+    const latestUserText = getLatestUserText(messages);
+    if (!latestUserText) return res.status(400).json({ error: 'No user message found.' });
+
+    const shouldStream = body.stream !== false;
 
     if (isShortGreeting(latestUserText)) {
       const reply = greetingReply();
@@ -193,20 +196,26 @@ module.exports = async (req, res) => {
       return shouldStream ? sendPlainText(res, reply) : res.status(200).json({ mode: 'case_analysis', risk: 'clarification_needed', reply });
     }
 
-    const recentContextForScope = getRecentContextText(messages, 8);
+    const recentContextForScope = getRecentContextText(messages, 10);
+    const continuationRequest = isContinuationRequest(latestUserText);
     if (!isMedicalInScope(latestUserText, DATA, recentContextForScope)) {
       const reply = outOfScopeReply(latestUserText);
       res.setHeader('X-Nexus-Mode', 'scope_guard');
       res.setHeader('X-Nexus-Risk', 'none');
-      return shouldStream ? sendPlainText(res, reply) : res.status(200).json({ mode: 'scope_guard', risk: 'none', reply });
+      res.setHeader('X-Nexus-Hide-Suggestions', 'true');
+      return shouldStream ? sendPlainText(res, reply) : res.status(200).json({ mode: 'scope_guard', risk: 'none', hideSuggestions: true, reply });
     }
 
-    const detectedMode = detectModeFromText(latestUserText, DATA);
+    const detectionText = continuationRequest ? `${recentContextForScope}\n${latestUserText}` : latestUserText;
+    const detectedMode = detectModeFromText(detectionText, DATA);
     const selectedMode = MODE_LABELS[body.mode] ? body.mode : 'general_chat';
-    const mode = resolveMode(selectedMode, detectedMode, latestUserText);
+    const mode = continuationRequest && detectedMode === 'general_chat' ? 'case_analysis' : resolveMode(selectedMode, detectedMode, latestUserText);
     const attachmentText = attachmentContext(messages);
     const quickAccessText = quickAccessContext(body);
     const recentContextText = recentContextForScope;
+    const continuationInstruction = continuationRequest
+      ? 'The user is asking to continue or complete the previous answer. Resume from the cutoff point using the conversation context. Do not answer out of scope. Do not restart the whole case unless needed for clarity.'
+      : '';
 
     let parsed = localParseQuestion({ text: latestUserText, mode, data: DATA });
     parsed.drugs = normalizeDrugList(parsed.drugs || [], DATA);
@@ -221,7 +230,7 @@ module.exports = async (req, res) => {
     try {
       upstream = await callFinalModel({
         mode,
-        modeInstruction: body.modeInstruction,
+        modeInstruction: [body.modeInstruction, continuationInstruction].filter(Boolean).join('\n\n'),
         messages,
         pipelineContext,
         attachmentText,
