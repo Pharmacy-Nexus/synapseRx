@@ -1432,73 +1432,89 @@ function ensureRelatedQuestions(text = "") {
 function buildFallbackRelatedQuestions(text = "") {
   const t = String(text || "").toLowerCase();
   if (isGreetingLikeAssistantContent(text)) return [];
-  if (/nexus shadow check|hidden risks|blind-spot|pharmacist traps|unsafe assumptions|urgency changers/.test(t)) {
+
+  // Specific clinical topics first. Avoid generic/static prompts that feel unrelated.
+  if (/anaphylaxis|epinephrine|adrenaline|urticaria|angioedema|wheezing|bronchospasm|penicillin allergy|حساسية|أدرينالين|ادرينالين/.test(t)) {
     return [
-      "Audit the original clinical case again with only the top 3 blind spots.",
-      "Turn these blind spots into pharmacist verification questions.",
-      "Build a short patient-safety checklist from this Shadow Check."
+      "Why is IM adrenaline first-line in anaphylaxis?",
+      "What should be documented after penicillin anaphylaxis?",
+      "When are antihistamines and steroids useful in anaphylaxis?"
     ];
   }
+
+  if (/empagliflozin|dapagliflozin|sglt2|euglycemic|ketoacidosis|sick day|جاردينس|امباجليفلوزين/.test(t)) {
+    return [
+      "Why can SGLT2 inhibitors cause euglycemic DKA during illness?",
+      "When should the SGLT2 inhibitor be restarted after AKI?",
+      "What sick-day counseling should be documented for this patient?"
+    ];
+  }
+
   const complexCaseHits = [
     /hyperkalemia|potassium|k\+|بوتاسيوم/.test(t),
     /triple whammy|aki|acute kidney|oliguria|urine output|renal|kidney|egfr|creatinine/.test(t),
-    /warfarin|amiodarone|inr|bleeding|bruising/.test(t),
-    /metformin|lactic acidosis/.test(t)
+    /apixaban|warfarin|amiodarone|inr|bleeding|bruising|melena|dark stools|hb|hemoglobin/.test(t),
+    /metformin|lactic acidosis|lactate|bicarbonate/.test(t),
+    /qtc|torsades|bradycardia|hypotension/.test(t)
   ].filter(Boolean).length;
   if (complexCaseHits >= 2 || /most urgent medication-related problems|clinical pharmacist case analysis|drug related problems/.test(t)) {
     return [
-      "Prioritize urgent actions for hyperkalemia, AKI, and bleeding risk in this case.",
-      "Create a prescriber-directed medication review plan for the high-risk medicines.",
-      "Build a 24–48 hour monitoring plan for potassium, renal function, INR, and bleeding signs."
+      "Continue this same case and rank the top 3 urgent actions only.",
+      "Explain the mechanism behind the highest-risk interaction in this case.",
+      "Build a 24-hour monitoring plan for this exact patient."
     ];
   }
+
+  if (/triple whammy|diclofenac|furosemide|aki|renal|kidney/.test(t)) {
+    return [
+      "Explain the triple whammy mechanism in this patient.",
+      "What monitoring is needed after NSAID exposure in CKD?",
+      "What safer analgesic options can be discussed with the prescriber?"
+    ];
+  }
+
   if (/warfarin|amiodarone|inr|bleeding/.test(t)) {
     return [
       "Explain the INR monitoring plan after starting amiodarone with warfarin.",
-      "What bleeding symptoms require urgent referral in a patient on warfarin?",
-      "Which factors increase bleeding risk with warfarin and amiodarone?"
+      "What bleeding symptoms require urgent referral in this patient?",
+      "Which factors increase bleeding risk in this case?"
     ];
   }
+
   if (/ramipril|ace inhibitor|potassium|hyperkalemia|k\+/.test(t)) {
     return [
-      "Explain how to monitor potassium and renal function with ACE inhibitors.",
-      "When is potassium supplementation appropriate with ramipril?",
-      "Which medicines increase hyperkalemia risk with ACE inhibitors?"
+      "Explain potassium and renal monitoring for this ACE inhibitor case.",
+      "Which medicines in this case increase hyperkalemia risk?",
+      "When can the ACE inhibitor be restarted safely?"
     ];
   }
+
   if (/metformin|egfr|lactic acidosis|لاكتك|لاكتيك/.test(t)) {
     return [
-      "What diabetes alternatives are safer when eGFR is below 30?",
+      "Why is metformin risky in this exact renal function?",
       "What symptoms suggest metformin-associated lactic acidosis?",
-      "How should glucose be monitored after stopping or holding metformin?"
+      "What diabetes alternatives are safer while eGFR is below 30?"
     ];
   }
+
   if (/active ingredient|excipient|سواغ|مادة فعالة|مادة اضافية|مادة إضافية|formulation|تصنيع/.test(t)) {
     return [
-      "Give examples of common excipients and their functions.",
-      "Explain how excipients can affect drug absorption or tolerability.",
-      "Compare generic and brand medicines from a formulation perspective."
+      "Give examples of excipients related to this formulation question.",
+      "Explain how excipients can affect absorption or tolerability.",
+      "Compare generic and brand medicines for this exact point."
     ];
   }
-  if (/triple whammy|diclofenac|furosemide|aki|renal|kidney/.test(t)) {
+
+  if (/nexus shadow check|hidden risks|blind-spot|pharmacist traps|unsafe assumptions|urgency changers/.test(t)) {
     return [
-      "Explain the triple whammy mechanism and why AKI risk increases.",
-      "What monitoring is needed after starting an NSAID in this combination?",
-      "What safer analgesic options can be considered for this patient?"
+      "Audit this same answer for the top 3 blind spots only.",
+      "Turn these blind spots into pharmacist verification questions.",
+      "Build a short patient-safety checklist from this same case."
     ];
   }
-  if (/dizziness|دوخة|orthostatic|blood pressure|ضغط/.test(t)) {
-    return [
-      "How should orthostatic blood pressure be checked in this patient?",
-      "Which antihypertensive classes commonly cause dizziness?",
-      "What red flags make dizziness on blood pressure medicines urgent?"
-    ];
-  }
-  return [
-    "Check a medication interaction and explain the mechanism.",
-    "Analyze a patient case using available labs and symptoms.",
-    "List the missing clinical information needed for a safe recommendation."
-  ];
+
+  // If no clear topic is detected, do not show generic canned suggestions.
+  return [];
 }
 
 function createRelatedQuestionsNode(questions = []) {
@@ -1628,6 +1644,15 @@ function autoGrow(el) {
   el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
 }
 
+function clearPreviousSuggestedQuestions(conversation) {
+  // Once the user continues the conversation, old suggestion chips should not stay
+  // floating above the composer or look like part of the new turn.
+  document.querySelectorAll(".related-questions").forEach(node => node.remove());
+  (conversation?.messages || []).forEach(message => {
+    if (message.role === "assistant") message.hideSuggestions = true;
+  });
+}
+
 async function sendMessage(event) {
   event.preventDefault();
   if (state.isGenerating || state.readOnlyShare) return;
@@ -1637,6 +1662,8 @@ async function sendMessage(event) {
     await createNewConversation(false);
     conversation = currentConversation();
   }
+
+  clearPreviousSuggestedQuestions(conversation);
 
   const text = els.messageInput.value.trim();
   const internalPrompt = state.pendingInternalPrompt;
@@ -1804,7 +1831,7 @@ async function streamAssistantReply(conversation) {
         modeInstruction: MODE_META[state.activeMode].prompt,
         messages: buildApiMessages(conversation.messages),
         quickAccessContext: buildQuickAccessContext(getLatestClinicalUserMessageText(conversation)),
-        stream: false
+        stream: true
       }),
       signal: state.abortController.signal
     });
