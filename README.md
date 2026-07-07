@@ -62,3 +62,31 @@ Stability patch after main chat returned only a timeout fallback.
 
 ### Deployment note
 If Vercel has `NEXUS_COMPOSER_TIMEOUT_MS=25000`, remove it or set it to `50000`. This build will still floor it to 45s, but cleaning the env avoids confusion.
+
+
+## v5.14 — Suggestions + clinical-rule cleanup
+
+This patch keeps the v5.13 Atom rebrand and avoids API/routing changes.
+
+### Fixed
+- Suggested chips now render only under the latest assistant response.
+- Old chips are hidden when the user continues the chat.
+- Model-generated canned “Suggested next questions” are stripped/filtered more aggressively.
+- Bleeding/INR suggestions are blocked unless the active case actually includes anticoagulation or active bleeding context.
+- Composer prompt now tells the model not to generate Suggested/Related questions; the UI handles them.
+
+### Added local clinical data
+- SGLT2 inhibitor aliases/monographs and sick-day acute illness rule.
+- Colchicine + clarithromycin high-risk interaction rule.
+- Clarithromycin + atorvastatin myopathy/rhabdomyolysis risk.
+- ARB + NSAID + diuretic triple-whammy rule including losartan + ibuprofen + HCTZ.
+
+### Files changed
+- `script.js`
+- `lib/composer.js`
+- `lib/evidenceBrief.js`
+- `data/drug_aliases.json`
+- `data/drug_monographs.json`
+- `data/clinical_rules.json`
+- `data/interactions.json`
+- `README.md`

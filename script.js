@@ -1041,6 +1041,14 @@ function formatDate(value) {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
+function getLatestAssistantIndex(conversation) {
+  const messages = conversation?.messages || [];
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    if (messages[i]?.role === "assistant" && String(messages[i]?.content || "").trim()) return i;
+  }
+  return -1;
+}
+
 function renderCurrentConversation() {
   const conversation = currentConversation();
   els.messages.innerHTML = `<div class="messages-inner" id="messagesInner"></div>`;
@@ -1058,6 +1066,7 @@ function renderCurrentConversation() {
     inner.appendChild(welcomeNode());
     renderMessageRail();
   } else {
+    const latestAssistantIndex = getLatestAssistantIndex(conversation);
     conversation.messages.forEach((message, index) => {
       inner.appendChild(createMessageNode(message.role, message.content, {
         mode: message.mode,
@@ -1066,6 +1075,7 @@ function renderCurrentConversation() {
         hideSuggestions: message.hideSuggestions,
         hideDisclaimer: message.hideDisclaimer,
         local: message.local,
+        isLatestAssistant: index === latestAssistantIndex,
         index
       }));
     });
@@ -1121,7 +1131,7 @@ function createMessageNode(role, content, options = {}) {
   const body = document.createElement("div");
   body.className = "message-content";
 
-  const related = role === "assistant" && !options.hideSuggestions ? ensureRelatedQuestions(content) : [];
+  const related = role === "assistant" && options.isLatestAssistant && !options.hideSuggestions ? ensureRelatedQuestions(content) : [];
   const cleanContent = role === "assistant" ? cleanAssistantVisibleContent(content) : content;
   body.innerHTML = role === "assistant" ? renderMarkdown(cleanContent) : escapeHtml(content).replace(/\n/g, "<br>");
 
@@ -1377,13 +1387,18 @@ function extractRelatedQuestions(text = "") {
   const source = String(text || "");
   const match = source.match(/(?:^|\n)#{0,3}\s*(?:Related questions|Follow-up questions|Suggested questions|أسئلة مقترحة|أسئلة متابعة)\s*:?\s*\n([\s\S]*)$/i);
   if (!match) return [];
-  return match[1]
-    .split(/\n+/)
-    .map(line => line.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "").trim())
-    .filter(Boolean)
-    .filter(line => !/^(sources used|confidence)\s*:?/i.test(line))
-    .slice(0, 3);
+  const lines = [];
+  for (const rawLine of match[1].split(/\n+/)) {
+    const line = rawLine.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "").trim();
+    if (!line) continue;
+    if (/^(sources used|confidence|educational clinical decision support|warning|important|note)\s*:?/i.test(line)) break;
+    lines.push(line);
+    if (lines.length >= 5) break;
+  }
+  return lines.slice(0, 3);
 }
+
+
 
 function stripRelatedQuestions(text = "") {
   return String(text || "").replace(/(?:^|\n)#{0,3}\s*(?:Related questions|Follow-up questions|Suggested questions|أسئلة مقترحة|أسئلة متابعة)\s*:?\s*\n[\s\S]*$/i, "").trim();
@@ -1415,12 +1430,36 @@ function cleanAssistantVisibleContent(text = "") {
   return stripGenericClosers(stripRelatedQuestions(text));
 }
 
-function ensureRelatedQuestions(text = "") {
-  if (/out of scope|outside that workspace|I can only help with medical/i.test(String(text || ''))) return [];
+function lowerText(text = "") {
+  return String(text || "").toLowerCase();
+}
 
-  const extracted = extractRelatedQuestions(text);
-  if (extracted.length >= 3) return extracted.slice(0, 3);
-  const fallback = buildFallbackRelatedQuestions(text);
+function hasActiveBleedingContext(text = "") {
+  const t = lowerText(text);
+  return /(warfarin|apixaban|rivaroxaban|dabigatran|edoxaban|anticoagulant|anticoagulation|inr|anti-xa|melena|dark stools|black stool|vomiting blood|hematemesis|hb drop|hemoglobin drop|baseline hb|dual antiplatelet|aspirin \+ clopidogrel|dapt|نزيف|سيولة|براز اسود|براز أسود|قيء دم|مميع)/i.test(t);
+}
+
+function isRelevantRelatedQuestion(question = "", context = "") {
+  const q = lowerText(question);
+  const t = lowerText(context);
+  if (!q || q.length < 8) return false;
+  if (/^(check a medication interaction|analyze a patient case|list the missing clinical information|give examples of common excipients|compare generic and brand medicines)/i.test(q)) return false;
+
+  if (/(bleeding|bleed|inr|anti-xa|anticoag|warfarin|apixaban|dark stool|melena|hb drop|سيولة|نزيف)/i.test(q) && !hasActiveBleedingContext(t)) return false;
+
+  if (/(anaphylaxis|adrenaline|epinephrine|antihistamine|penicillin allergy)/i.test(q) && !/(anaphylaxis|adrenaline|epinephrine|antihistamine|penicillin|urticaria|angioedema|wheezing|حساسية|ادرينالين|أدرينالين)/i.test(t)) return false;
+
+  if (/(sglt2|empagliflozin|dapagliflozin|euglycemic|sick-day|sick day)/i.test(q) && !/(sglt2|empagliflozin|dapagliflozin|canagliflozin|jardiance|euglycemic|ketoacidosis|امباجليفلوزين|جاردينس)/i.test(t)) return false;
+
+  return true;
+}
+
+function ensureRelatedQuestions(text = "") {
+  const source = String(text || '');
+  if (/out of scope|outside that workspace|I can only help with medical/i.test(source)) return [];
+
+  const extracted = extractRelatedQuestions(source).filter(q => isRelevantRelatedQuestion(q, source));
+  const fallback = buildFallbackRelatedQuestions(source).filter(q => isRelevantRelatedQuestion(q, source));
   const merged = [];
   [...extracted, ...fallback].forEach(question => {
     const q = String(question || "").trim();
@@ -1428,6 +1467,7 @@ function ensureRelatedQuestions(text = "") {
   });
   return merged.slice(0, 3);
 }
+
 
 function buildFallbackRelatedQuestions(text = "") {
   const t = String(text || "").toLowerCase();
@@ -1522,7 +1562,7 @@ function createRelatedQuestionsNode(questions = []) {
   wrap.className = "related-questions";
   const title = document.createElement("div");
   title.className = "related-title";
-  title.textContent = "Suggested next questions";
+  title.textContent = "Continue this case";
   wrap.appendChild(title);
   questions.slice(0, 3).forEach(question => {
     const btn = document.createElement("button");
@@ -1950,7 +1990,9 @@ function finalizeAssistantNode(body, message) {
   const rawContent = String(message?.content || "");
   let related = [];
   try {
-    related = message.hideSuggestions ? [] : ensureRelatedQuestions(rawContent);
+    const conversation = currentConversation();
+    const latestAssistant = conversation?.messages?.[getLatestAssistantIndex(conversation)];
+    related = message.hideSuggestions || (latestAssistant && latestAssistant !== message) ? [] : ensureRelatedQuestions(rawContent);
   } catch (error) {
     console.warn("Related-question rendering skipped:", error);
     related = [];
