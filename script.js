@@ -5,7 +5,7 @@ const MAX_TEXT_FILE_BYTES = 750 * 1024;
 const MAX_QUICK_ACCESS_NOTES = 120;
 const MAX_QUICK_ACCESS_CONTEXT_NOTES = 5;
 const MAX_WORK_SHELF_ITEMS = 60;
-console.info("Nexus build", window.NEXUS_BUILD || "v5.3-sideask-natural");
+console.info("Atom build", window.NEXUS_BUILD || "v5.13-atom-rebrand");
 const HAS_SUPABASE = false;
 const supabase = null;
 
@@ -16,7 +16,7 @@ const MODE_META = {
   },
   case_analysis: {
     label: "Case Analysis",
-    prompt: "Analyze this case as a clinical pharmacist. Focus on medication-related problems, missing labs, monitoring, red flags, and practical recommendations."
+    prompt: "Analyze this case as a pharmacist. Focus on medication-related problems, missing labs, monitoring, red flags, and practical recommendations."
   },
   drug_interaction: {
     label: "Drug Interaction",
@@ -179,7 +179,7 @@ function buildLocalUser(email, fullName) {
   return {
     id: "local_user",
     email: email || "demo@nexus.local",
-    user_metadata: { full_name: fullName || "Local Demo" }
+    user_metadata: { full_name: fullName || "Atom User" }
   };
 }
 function isShortGreetingText(text = "") {
@@ -188,7 +188,7 @@ function isShortGreetingText(text = "") {
 }
 
 function localGreetingReply() {
-  return "Hi 👋 I’m Nexus. How can I help?";
+  return "Hi 👋 I’m Atom. How can I help?";
 }
 
 function buildApiMessages(messages = []) {
@@ -239,7 +239,7 @@ async function handleAuthSubmit(event) {
   event.preventDefault();
   const email = els.emailInput.value.trim() || "demo@nexus.local";
   const password = els.passwordInput.value;
-  const fullName = els.nameInput.value.trim() || email.split("@")[0] || "Local Demo";
+  const fullName = els.nameInput.value.trim() || email.split("@")[0] || "Atom User";
   setAuthMessage(HAS_SUPABASE ? "Connecting…" : "Opening local demo…");
   els.authSubmitBtn.disabled = true;
 
@@ -336,7 +336,7 @@ async function logout() {
   state.conversations = [];
   state.currentConversationId = null;
   state.readOnlyShare = false;
-  const localUser = buildLocalUser("local@nexus.app", "Nexus User");
+  const localUser = buildLocalUser("local@nexus.app", "Atom User");
   setLocalJson(localUserKey(), localUser);
   await enterApp(localUser);
   showToast("Local workspace reset.");
@@ -605,11 +605,11 @@ function getLatestUserMessageText(conversation = currentConversation()) {
 
 function isShadowPromptText(text = "") {
   const t = String(text || "").trim().toLowerCase();
-  return t.startsWith("run nexus shadow check") || t.includes("focus only on:\n- hidden risks") || t.includes("answer or selected excerpt to audit");
+  return (t.startsWith("run nexus shadow check") || t.startsWith("run atom shadow check")) || t.includes("focus only on:\n- hidden risks") || t.includes("answer or selected excerpt to audit");
 }
 
 function isShadowAnswerText(text = "") {
-  return /(^|\n)\s*(#{1,4}\s*)?nexus shadow check\b/i.test(String(text || ""));
+  return /(^|\n)\s*(#{1,4}\s*)?(?:nexus|atom) shadow check\b/i.test(String(text || ""));
 }
 
 function getLatestClinicalUserMessageText(conversation = currentConversation()) {
@@ -926,7 +926,7 @@ function buildShadowCheckPrompt(row, content = "") {
   const selected = getSelectedTextInside(row);
   const answerOrExcerpt = (selected || content || "").trim().slice(0, 7000);
   const latestUser = getLatestClinicalUserMessageText(conversation).slice(0, 4000);
-  return `Run Nexus Shadow Check on this clinical content.
+  return `Run Atom Shadow Check on this clinical content.
 
 Focus only on:
 - Hidden risks the user may miss
@@ -963,8 +963,8 @@ function runShadowCheck(row, role, content = "") {
   const prompt = buildShadowCheckPrompt(row, content);
   const extra = els.messageInput.value.trim();
   state.pendingInternalPrompt = extra ? `${prompt}\n\nExtra instruction from user:\n${extra}` : prompt;
-  state.pendingUserDisplay = "Run Nexus Shadow Check";
-  els.messageInput.value = "Run Nexus Shadow Check";
+  state.pendingUserDisplay = "Run Atom Shadow Check";
+  els.messageInput.value = "Run Atom Shadow Check";
   autoGrow(els.messageInput);
   selectMode("case_analysis", false);
   els.chatForm.requestSubmit();
@@ -1079,7 +1079,7 @@ function welcomeNode() {
   node.className = "welcome";
   node.innerHTML = `
     <div class="welcome-card">
-      <div class="welcome-mark">Nx</div>
+      <div class="welcome-mark">At</div>
       <h2>How can I help?</h2>
       <p>Start with General Chat, or choose a clinical tool from the sidebar. Attach case files if needed and ask naturally.</p>
       <div class="prompt-grid">
@@ -1116,7 +1116,7 @@ function createMessageNode(role, content, options = {}) {
 
   const meta = document.createElement("div");
   meta.className = "message-meta";
-  meta.innerHTML = `<span class="message-avatar">${role === "assistant" ? "Nx" : "You"}</span><span>${role === "assistant" ? "Nexus" : "You"}</span>`;
+  meta.innerHTML = `<span class="message-avatar">${role === "assistant" ? "At" : "You"}</span><span>${role === "assistant" ? "Atom" : "You"}</span>`;
 
   const body = document.createElement("div");
   body.className = "message-content";
@@ -1505,7 +1505,7 @@ function buildFallbackRelatedQuestions(text = "") {
     ];
   }
 
-  if (/nexus shadow check|hidden risks|blind-spot|pharmacist traps|unsafe assumptions|urgency changers/.test(t)) {
+  if (/nexus shadow check|atom shadow check|hidden risks|blind-spot|pharmacist traps|unsafe assumptions|urgency changers/.test(t)) {
     return [
       "Audit this same answer for the top 3 blind spots only.",
       "Turn these blind spots into pharmacist verification questions.",
@@ -1587,7 +1587,7 @@ function renderMessageRail() {
     segment.type = "button";
     segment.className = `rail-segment ${message.role}`;
     segment.dataset.targetIndex = String(absoluteIndex);
-    segment.dataset.tooltip = `${message.role === "assistant" ? "Nexus" : "You"}: ${compactPreview(message.content)}`;
+    segment.dataset.tooltip = `${message.role === "assistant" ? "Atom" : "You"}: ${compactPreview(message.content)}`;
     segment.title = segment.dataset.tooltip;
     segment.setAttribute("aria-label", segment.dataset.tooltip);
     segment.addEventListener("click", () => {
@@ -1804,7 +1804,7 @@ async function streamAssistantReply(conversation) {
   const assistantBody = assistantRow.querySelector(".message-content");
   assistantBody.innerHTML = `
     <div class="thinking-box">
-      <span class="thinking-orb"><span>Nx</span></span>
+      <span class="thinking-orb"><span>At</span></span>
       <span class="thinking-text">Thinking <span class="loader-dots"><span></span><span></span><span></span></span> <b id="thinkingCounter">0.0s</b></span>
     </div>
   `;
@@ -1910,7 +1910,7 @@ async function streamAssistantReply(conversation) {
       assistantMessage.content = targetBuffer;
     } else {
       const data = await response.json();
-      assistantMessage.content = data.reply || "### Temporary response issue\nNexus did not receive text from the model for this turn. Please resend the question or choose a suggested clinical prompt below.";
+      assistantMessage.content = data.reply || "### Temporary response issue\nAtom did not receive text from the model for this turn. Please resend the question or choose a suggested clinical prompt below.";
       if (data.hideSuggestions || data.mode === "scope_guard") {
         assistantMessage.hideSuggestions = true;
         assistantMessage.hideDisclaimer = true;
@@ -1922,7 +1922,7 @@ async function streamAssistantReply(conversation) {
     }
 
     if (!assistantMessage.content.trim()) {
-      assistantMessage.content = "### Temporary response issue\nNexus did not receive text from the model for this turn. Please resend the question or choose a suggested clinical prompt below.";
+      assistantMessage.content = "### Temporary response issue\nAtom did not receive text from the model for this turn. Please resend the question or choose a suggested clinical prompt below.";
     }
     finalizeAssistantNode(assistantBody, assistantMessage);
     await persistConversation(conversation, {});
@@ -2019,7 +2019,7 @@ function setComposerDisabled(disabled) {
   els.messageInput.disabled = disabled;
   els.attachBtn.disabled = disabled;
   els.sendBtn.disabled = disabled;
-  els.messageInput.placeholder = disabled ? "Shared conversation is read-only" : "Message Nexus…";
+  els.messageInput.placeholder = disabled ? "Shared conversation is read-only" : "Message Atom…";
 }
 
 function renderFileChips() {
@@ -2172,7 +2172,7 @@ async function exportConversationPdf(conversation = currentConversation()) {
   }
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-  const filename = `${safeFilename(conversation.title || makeTitle(conversation.messages?.find(m => m.role === "user")?.content || "nexus-chat"))}.pdf`;
+  const filename = `${safeFilename(conversation.title || makeTitle(conversation.messages?.find(m => m.role === "user")?.content || "atom-chat"))}.pdf`;
 
   try {
     if (window.html2pdf) {
@@ -2216,12 +2216,12 @@ function buildPdfReportNode(conversation) {
   node.dir = /[؀-ۿ]/.test(JSON.stringify(conversation.messages || [])) ? "auto" : "ltr";
 
   const modeLabel = MODE_META[conversation.mode]?.label || "General Chat";
-  const title = conversation.title || makeTitle(conversation.messages?.find(m => m.role === "user")?.content || "Nexus report");
+  const title = conversation.title || makeTitle(conversation.messages?.find(m => m.role === "user")?.content || "Atom report");
   const generated = new Date().toLocaleString();
 
   node.innerHTML = `
     <header class="pdf-header">
-      <div class="pdf-brand">Nx</div>
+      <div class="pdf-brand">At</div>
       <div>
         <h1>${escapeHtml(title)}</h1>
         <p>${escapeHtml(modeLabel)} · Generated ${escapeHtml(generated)}</p>
@@ -2237,7 +2237,7 @@ function buildPdfReportNode(conversation) {
   (conversation.messages || []).forEach(message => {
     const block = document.createElement("section");
     block.className = `pdf-message ${message.role === "assistant" ? "assistant" : "user"}`;
-    const label = message.role === "assistant" ? "Nexus" : "User";
+    const label = message.role === "assistant" ? "Atom" : "User";
     const attachments = message.attachments?.length
       ? `<div class="pdf-attachments"><b>Attachments:</b> ${escapeHtml(message.attachments.map(f => f.name).join(", "))}</div>`
       : "";
@@ -2253,7 +2253,7 @@ function buildPdfReportNode(conversation) {
 }
 
 function safeFilename(name) {
-  return name.toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/gi, "-").replace(/^-|-$/g, "").slice(0, 70) || "nexus-chat";
+  return name.toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/gi, "-").replace(/^-|-$/g, "").slice(0, 70) || "atom-chat";
 }
 
 function isMobileSidebar() {
@@ -2434,7 +2434,7 @@ async function init() {
     return;
   }
 
-  const localUser = getLocalJson(localUserKey(), null) || buildLocalUser("local@nexus.app", "Nexus User");
+  const localUser = getLocalJson(localUserKey(), null) || buildLocalUser("local@nexus.app", "Atom User");
   setLocalJson(localUserKey(), localUser);
   await enterApp(localUser);
 }
@@ -2443,7 +2443,7 @@ init().catch(async error => {
   console.error(error);
   try {
     Object.keys(localStorage).filter(k => k.startsWith("nexus_conversations_")).forEach(k => localStorage.removeItem(k));
-    const fallbackUser = buildLocalUser("local@nexus.app", "Nexus User");
+    const fallbackUser = buildLocalUser("local@nexus.app", "Atom User");
     setLocalJson(localUserKey(), fallbackUser);
     await enterApp(fallbackUser);
     showToast("Recovered workspace after startup issue.");

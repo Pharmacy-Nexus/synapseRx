@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0b1220" />
-  <title>Nexus Clinical Pharmacist</title>
+  <meta name="theme-color" content="#0f172a" />
+  <title>Atom — AI Assistant for Pharmacists</title>
 
   <script>
     // No-auth build: open the workspace directly and call the Vercel API.
@@ -13,8 +13,8 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=5.12" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=5.13" />
 </head>
 <body class="app-active" data-theme="light" data-mode="general_chat">
   <!-- v4.8.3 hard no-auth build: there is no login gate. -->
@@ -25,10 +25,10 @@
     <aside id="sidebar" class="sidebar" aria-label="Application sidebar">
       <div class="sidebar-top">
         <div class="brand-row">
-          <div class="logo-mark">Nx</div>
+          <div class="logo-mark">At</div>
           <div class="brand-text">
-            <div class="brand-title">Nexus</div>
-            <div class="brand-subtitle">Clinical Pharmacist</div>
+            <div class="brand-title">Atom</div>
+            <div class="brand-subtitle">AI Assistant for Pharmacists</div>
           </div>
         </div>
         <button id="closeSidebarBtn" class="icon-btn mobile-only" type="button" aria-label="Close sidebar">×</button>
@@ -129,7 +129,7 @@
         <form id="chatForm" class="composer">
           <button id="attachBtn" class="composer-icon" type="button" aria-label="Attach files">＋</button>
           <input id="fileInput" class="hidden" type="file" multiple accept=".txt,.md,.csv,.json" />
-          <textarea id="messageInput" rows="1" placeholder="Message Nexus…" autocomplete="off"></textarea>
+          <textarea id="messageInput" rows="1" placeholder="Message Atom…" autocomplete="off"></textarea>
           <button id="sendBtn" class="send-btn" type="submit" aria-label="Send message">↑</button>
         </form>
 
@@ -224,22 +224,22 @@
 
 
   <noscript>
-    <div style="position:fixed;inset:16px;z-index:9999;background:#fff;color:#111;padding:20px;border-radius:16px;font-family:Arial">JavaScript is required to run Nexus.</div>
+    <div style="position:fixed;inset:16px;z-index:9999;background:#fff;color:#111;padding:20px;border-radius:16px;font-family:Arial">JavaScript is required to run Atom.</div>
   </noscript>
   <script>
-    window.NEXUS_BUILD = "v5.3-sideask-natural";
+    window.NEXUS_BUILD = "v5.13-atom-rebrand";
     window.NEXUS_API_ENDPOINT = window.NEXUS_API_ENDPOINT || "/api/chat";
     window.addEventListener("error", function(event) {
-      console.error("Nexus boot error", event.error || event.message);
+      console.error("Atom boot error", event.error || event.message);
       var toast = document.getElementById("toast");
       if (toast) {
-        toast.textContent = "Nexus startup error: " + (event.error?.message || event.message || "unknown error");
+        toast.textContent = "Atom startup error: " + (event.error?.message || event.message || "unknown error");
         toast.classList.remove("hidden");
       }
     });
   </script>
   <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
-  <script type="module" src="script.js?v=5.12"></script>
+  <script type="module" src="script.js?v=5.13"></script>
 </body>
 </html>

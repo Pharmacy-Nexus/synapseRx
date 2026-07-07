@@ -1,4 +1,20 @@
-# Nexus Clinical Pharmacist — v5.12 Context Suggestions Repair
+# Atom — v5.13 Rebrand Patch
+
+Brand/UI-only patch on top of v5.12.
+
+## Changed
+
+- Rebranded visible product name from Nexus to Atom.
+- Updated subtitle to **AI Assistant for Pharmacists**.
+- Replaced logo text `Nx` with `At`.
+- Updated font to **Space Grotesk + IBM Plex Sans Arabic**.
+- Updated primary colors to blue/cyan/violet Atom identity.
+- Updated user-facing prompts from clinical-pharmacist-only wording to broader pharmacist assistant wording.
+- Kept internal `NEXUS_*` environment variables and localStorage keys unchanged to avoid breaking deployments/history.
+
+---
+
+# Atom — v5.12 Context Suggestions Repair
 
 Small safe patch on top of v5.11.
 
@@ -12,7 +28,7 @@ Small safe patch on top of v5.11.
 
 ---
 
-# Nexus Clinical Pharmacist — v5.10 Stable UI Repair
+# Atom — v5.10 Stable UI Repair
 
 This build repairs the broken main chat behavior introduced after Side Ask patches.
 

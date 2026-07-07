@@ -14,14 +14,15 @@
   --danger: #dc2626;
   --warning: #f59e0b;
   --success: #16a34a;
-  --accent: #8a6a2f;
-  --accent-2: #c8a24f;
-  --accent-soft: rgba(138, 106, 47, .105);
-  --accent-border: rgba(138, 106, 47, .25);
+  --accent: #2563eb;
+  --accent-2: #06b6d4;
+  --accent-3: #7c3aed;
+  --accent-soft: rgba(37, 99, 235, .105);
+  --accent-border: rgba(37, 99, 235, .24);
   --radius-xl: 28px;
   --radius-lg: 20px;
   --radius-md: 14px;
-  --font: "Manrope", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  --font: "Space Grotesk", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
 }
 
 body[data-theme="dark"] {
@@ -39,10 +40,10 @@ body[data-theme="dark"] {
   --shadow: 0 24px 80px rgba(0, 0, 0, .38);
 }
 
-body[data-mode="general_chat"] { --accent: #8a6a2f; --accent-2: #c8a24f; --accent-soft: rgba(138,106,47,.105); --accent-border: rgba(138,106,47,.25); }
-body[data-mode="case_analysis"] { --accent: #2557d6; --accent-2: #2ac7e9; --accent-soft: rgba(37,87,214,.10); --accent-border: rgba(37,87,214,.24); }
-body[data-mode="drug_interaction"] { --accent: #00796b; --accent-2: #20c9a6; --accent-soft: rgba(0,121,107,.105); --accent-border: rgba(0,121,107,.25); }
-body[data-mode="drug_reverse"] { --accent: #6d48d6; --accent-2: #d946ef; --accent-soft: rgba(109,72,214,.11); --accent-border: rgba(109,72,214,.25); }
+body[data-mode="general_chat"] { --accent: #2563eb; --accent-2: #06b6d4; --accent-soft: rgba(37,99,235,.105); --accent-border: rgba(37,99,235,.24); }
+body[data-mode="case_analysis"] { --accent: #4f46e5; --accent-2: #06b6d4; --accent-soft: rgba(79,70,229,.10); --accent-border: rgba(79,70,229,.24); }
+body[data-mode="drug_interaction"] { --accent: #0d9488; --accent-2: #22c55e; --accent-soft: rgba(13,148,136,.105); --accent-border: rgba(13,148,136,.25); }
+body[data-mode="drug_reverse"] { --accent: #7c3aed; --accent-2: #f97316; --accent-soft: rgba(124,58,237,.11); --accent-border: rgba(124,58,237,.25); }
 
 * { box-sizing: border-box; }
 html, body { min-height: 100%; }
