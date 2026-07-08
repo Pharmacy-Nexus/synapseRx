@@ -1,79 +1,357 @@
 [
   {
     "id": "INT-ACEI-K-001",
-    "drugs": ["ramipril", "potassium chloride"],
+    "drugs": [
+      "ramipril",
+      "potassium chloride"
+    ],
     "severity": "high",
     "risk": "Hyperkalemia",
     "mechanism": "ACE inhibitors reduce aldosterone-mediated potassium excretion; potassium supplementation adds exogenous potassium load.",
     "recommendation": "Avoid routine potassium supplementation unless there is a clear indication and potassium/renal function are monitored.",
-    "monitoring": ["serum potassium", "serum creatinine", "eGFR", "ECG if symptomatic or severe hyperkalemia suspected"],
-    "patient_factor_amplifiers": ["CKD", "older age", "diabetes", "dehydration", "concurrent NSAID", "potassium-sparing diuretic"],
+    "monitoring": [
+      "serum potassium",
+      "serum creatinine",
+      "eGFR",
+      "ECG if symptomatic or severe hyperkalemia suspected"
+    ],
+    "patient_factor_amplifiers": [
+      "CKD",
+      "older age",
+      "diabetes",
+      "dehydration",
+      "concurrent NSAID",
+      "potassium-sparing diuretic"
+    ],
     "source": "Local Interaction Rule: ACEI + potassium v1"
   },
   {
     "id": "INT-ACEI-NSAID-001",
-    "drugs": ["ramipril", "diclofenac"],
+    "drugs": [
+      "ramipril",
+      "diclofenac"
+    ],
     "severity": "moderate_to_high",
     "risk": "Acute kidney injury, reduced antihypertensive effect, possible hyperkalemia",
     "mechanism": "NSAIDs constrict the afferent renal arteriole while ACE inhibitors dilate the efferent arteriole, reducing glomerular filtration pressure in susceptible patients.",
     "recommendation": "Use the shortest NSAID duration if unavoidable, avoid in high-risk renal/dehydrated patients, and check renal function and potassium when clinically relevant.",
-    "monitoring": ["serum creatinine", "eGFR", "serum potassium", "blood pressure", "hydration status"],
-    "patient_factor_amplifiers": ["CKD", "dehydration", "heart failure", "older age", "diuretic use"],
+    "monitoring": [
+      "serum creatinine",
+      "eGFR",
+      "serum potassium",
+      "blood pressure",
+      "hydration status"
+    ],
+    "patient_factor_amplifiers": [
+      "CKD",
+      "dehydration",
+      "heart failure",
+      "older age",
+      "diuretic use"
+    ],
     "source": "Local Interaction Rule: ACEI + NSAID v1"
   },
   {
     "id": "INT-TRIPLE-WHAMMY-001",
-    "drugs": ["ramipril", "diclofenac", "furosemide"],
+    "drugs": [
+      "ramipril",
+      "diclofenac",
+      "furosemide"
+    ],
     "severity": "high",
     "risk": "Triple-whammy acute kidney injury risk",
     "mechanism": "ACE inhibitor/ARB + diuretic + NSAID can reduce renal perfusion and filtration through combined hemodynamic effects.",
     "recommendation": "Avoid the combination when possible. If unavoidable, ensure hydration, baseline renal function/electrolytes, short NSAID duration, and follow-up labs.",
-    "monitoring": ["baseline and follow-up serum creatinine", "eGFR", "serum potassium", "blood pressure", "urine output"],
-    "patient_factor_amplifiers": ["CKD", "older age", "heart failure", "dehydration", "diabetes"],
+    "monitoring": [
+      "baseline and follow-up serum creatinine",
+      "eGFR",
+      "serum potassium",
+      "blood pressure",
+      "urine output"
+    ],
+    "patient_factor_amplifiers": [
+      "CKD",
+      "older age",
+      "heart failure",
+      "dehydration",
+      "diabetes"
+    ],
     "source": "Local Clinical Rule: Triple whammy v1"
   },
   {
     "id": "INT-WARF-AMIO-001",
-    "drugs": ["warfarin", "amiodarone"],
+    "drugs": [
+      "warfarin",
+      "amiodarone"
+    ],
     "severity": "high",
     "risk": "Increased INR and bleeding risk",
     "mechanism": "Amiodarone inhibits warfarin metabolism, increasing anticoagulant effect.",
     "recommendation": "Requires close INR monitoring and prescriber-led warfarin dose adjustment. Counsel for bleeding symptoms.",
-    "monitoring": ["INR", "bleeding/bruising", "hemoglobin if bleeding suspected"],
-    "patient_factor_amplifiers": ["older age", "liver disease", "history of bleeding", "concurrent antiplatelet/NSAID"],
+    "monitoring": [
+      "INR",
+      "bleeding/bruising",
+      "hemoglobin if bleeding suspected"
+    ],
+    "patient_factor_amplifiers": [
+      "older age",
+      "liver disease",
+      "history of bleeding",
+      "concurrent antiplatelet/NSAID"
+    ],
     "source": "Local Interaction Rule: warfarin + amiodarone v1"
   },
   {
     "id": "INT-ALF-SILD-001",
-    "drugs": ["alfuzosin", "sildenafil"],
+    "drugs": [
+      "alfuzosin",
+      "sildenafil"
+    ],
     "severity": "moderate_to_high",
     "risk": "Symptomatic hypotension, dizziness, syncope, falls",
     "mechanism": "Alpha-1 blockade and PDE5 inhibition both lower vascular tone and can have additive blood-pressure lowering effects.",
     "recommendation": "Avoid unsafe self-combination. If prescribed together, use cautious timing/dosing and counsel about dizziness, syncope, and standing slowly.",
-    "monitoring": ["blood pressure symptoms", "dizziness/syncope", "fall risk", "concurrent antihypertensives"],
-    "patient_factor_amplifiers": ["older age", "baseline hypotension", "multiple antihypertensives", "dehydration"],
+    "monitoring": [
+      "blood pressure symptoms",
+      "dizziness/syncope",
+      "fall risk",
+      "concurrent antihypertensives"
+    ],
+    "patient_factor_amplifiers": [
+      "older age",
+      "baseline hypotension",
+      "multiple antihypertensives",
+      "dehydration"
+    ],
     "source": "Local Interaction Rule: alpha-blocker + PDE5 inhibitor v1"
   },
   {
     "id": "INT-ARB-K-001",
-    "drugs": ["losartan", "potassium chloride"],
+    "drugs": [
+      "losartan",
+      "potassium chloride"
+    ],
     "severity": "high",
     "risk": "Hyperkalemia",
     "mechanism": "ARBs reduce aldosterone-mediated potassium excretion; potassium supplements increase potassium load.",
     "recommendation": "Avoid routine potassium supplementation unless indicated and monitored.",
-    "monitoring": ["serum potassium", "serum creatinine", "eGFR"],
-    "patient_factor_amplifiers": ["CKD", "older age", "diabetes", "dehydration", "NSAID use"],
+    "monitoring": [
+      "serum potassium",
+      "serum creatinine",
+      "eGFR"
+    ],
+    "patient_factor_amplifiers": [
+      "CKD",
+      "older age",
+      "diabetes",
+      "dehydration",
+      "NSAID use"
+    ],
     "source": "Local Interaction Rule: ARB + potassium v1"
   },
   {
     "id": "INT-WARF-ASP-001",
-    "drugs": ["warfarin", "aspirin"],
+    "drugs": [
+      "warfarin",
+      "aspirin"
+    ],
     "severity": "high",
     "risk": "Bleeding risk due to combined anticoagulant and antiplatelet effect",
     "mechanism": "Warfarin anticoagulation plus aspirin platelet inhibition increases bleeding risk.",
     "recommendation": "Only combine when there is a clear prescriber-approved indication. Counsel for bleeding and monitor closely.",
-    "monitoring": ["bleeding/bruising", "INR", "GI bleeding symptoms"],
-    "patient_factor_amplifiers": ["history of ulcer", "older age", "NSAID use", "liver disease"],
+    "monitoring": [
+      "bleeding/bruising",
+      "INR",
+      "GI bleeding symptoms"
+    ],
+    "patient_factor_amplifiers": [
+      "history of ulcer",
+      "older age",
+      "NSAID use",
+      "liver disease"
+    ],
     "source": "Local Interaction Rule: warfarin + aspirin v1"
+  },
+  {
+    "id": "INT-ARB-NSAID-DIURETIC-001",
+    "drugs": [
+      "losartan",
+      "ibuprofen",
+      "hydrochlorothiazide"
+    ],
+    "severity": "high",
+    "risk": "Triple-whammy acute kidney injury risk",
+    "mechanism": "ARB efferent arteriolar dilation plus NSAID afferent arteriolar constriction plus diuretic-related volume depletion can sharply reduce glomerular filtration pressure, especially during diarrhea/poor intake or CKD.",
+    "recommendation": "Avoid the combination when possible. In AKI/dehydration/hypotension, urgently flag for clinician review to hold nephrotoxic/volume-depleting contributors and monitor renal function/electrolytes.",
+    "monitoring": [
+      "serum creatinine/eGFR",
+      "serum potassium",
+      "blood pressure",
+      "urine output",
+      "volume status"
+    ],
+    "patient_factor_amplifiers": [
+      "CKD",
+      "diarrhea/vomiting",
+      "poor oral intake",
+      "older age",
+      "heart failure",
+      "diabetes"
+    ],
+    "source": "Local Clinical Rule: ARB + NSAID + diuretic triple whammy v1"
+  },
+  {
+    "id": "INT-COLCHICINE-CLARITHRO-001",
+    "drugs": [
+      "colchicine",
+      "clarithromycin"
+    ],
+    "severity": "contraindicated_high_risk",
+    "risk": "Severe or fatal colchicine toxicity",
+    "mechanism": "Clarithromycin strongly inhibits CYP3A4 and P-gp, reducing colchicine metabolism/efflux and increasing systemic exposure; renal impairment further reduces clearance.",
+    "recommendation": "Avoid the combination, especially in renal or hepatic impairment. Urgently flag for prescriber review to stop/replace the interacting drug(s) and assess for toxicity.",
+    "monitoring": [
+      "GI toxicity/diarrhea",
+      "muscle pain/weakness",
+      "CK",
+      "CBC",
+      "renal function",
+      "hepatic function"
+    ],
+    "patient_factor_amplifiers": [
+      "CKD",
+      "AKI",
+      "hepatic impairment",
+      "older age",
+      "concurrent statin"
+    ],
+    "source": "Local Interaction Rule: colchicine + clarithromycin v1"
+  },
+  {
+    "id": "INT-CLARITHRO-ATORVASTATIN-001",
+    "drugs": [
+      "clarithromycin",
+      "atorvastatin"
+    ],
+    "severity": "moderate_to_high",
+    "risk": "Increased statin exposure with myopathy/rhabdomyolysis risk",
+    "mechanism": "Clarithromycin inhibits CYP3A4 and can increase atorvastatin concentrations; dehydration/AKI and colchicine exposure can further amplify myotoxicity risk.",
+    "recommendation": "Consider temporary statin hold or alternative antibiotic/statin strategy under prescriber direction; assess CK and muscle symptoms when clinically indicated.",
+    "monitoring": [
+      "CK",
+      "muscle pain/weakness",
+      "renal function",
+      "ALT/AST if clinically indicated"
+    ],
+    "patient_factor_amplifiers": [
+      "AKI",
+      "CKD",
+      "colchicine",
+      "older age",
+      "high statin dose"
+    ],
+    "source": "Local Interaction Rule: clarithromycin + atorvastatin v1"
+  },
+  {
+    "id": "INT-TRAMADOL-SEROTONERGICS-001",
+    "drugs": [
+      "tramadol",
+      "sertraline",
+      "duloxetine"
+    ],
+    "severity": "high",
+    "risk": "Serotonin syndrome and seizure risk",
+    "mechanism": "Tramadol inhibits serotonin/norepinephrine reuptake and lowers seizure threshold; concurrent SSRI/SNRI therapy increases serotonergic tone.",
+    "recommendation": "Flag urgently for prescriber review; avoid tramadol with multiple serotonergic antidepressants and assess for serotonin toxicity.",
+    "monitoring": [
+      "mental status",
+      "temperature",
+      "heart rate/BP",
+      "clonus/hyperreflexia",
+      "CK",
+      "seizures"
+    ],
+    "patient_factor_amplifiers": [
+      "older age",
+      "polypharmacy",
+      "renal impairment",
+      "recent dose addition"
+    ],
+    "source": "Local Interaction Rule: tramadol + serotonergic antidepressants v1"
+  },
+  {
+    "id": "INT-AMITRIPTYLINE-ONDANSETRON-QT-001",
+    "drugs": [
+      "amitriptyline",
+      "ondansetron"
+    ],
+    "severity": "moderate_to_high",
+    "risk": "Additive QT prolongation and torsades risk",
+    "mechanism": "Both can delay cardiac repolarization through hERG/IKr effects; hypokalemia and hypomagnesemia amplify torsades risk.",
+    "recommendation": "Avoid or hold QT-prolonging contributors in patients with QTc >500 ms and correct electrolytes under clinician direction.",
+    "monitoring": [
+      "ECG/QTc",
+      "serum potassium",
+      "serum magnesium",
+      "telemetry in high-risk cases"
+    ],
+    "patient_factor_amplifiers": [
+      "female sex",
+      "older age",
+      "hypokalemia",
+      "hypomagnesemia",
+      "structural heart disease"
+    ],
+    "source": "Local Interaction Rule: amitriptyline + ondansetron QT risk v1"
+  },
+  {
+    "id": "INT-SSRI-SNRI-SIADH-001",
+    "drugs": [
+      "sertraline",
+      "duloxetine"
+    ],
+    "severity": "moderate_to_high",
+    "risk": "Hyponatremia/SIADH risk",
+    "mechanism": "SSRIs/SNRIs can increase ADH release or renal sensitivity to ADH, leading to dilutional hyponatremia; risk is higher in older adults and with thiazides.",
+    "recommendation": "Check serum sodium and evaluate SIADH/hypovolemia in confused or seizure-prone patients; flag antidepressant regimen for review.",
+    "monitoring": [
+      "serum sodium",
+      "serum osmolality",
+      "urine osmolality",
+      "urine sodium",
+      "mental status"
+    ],
+    "patient_factor_amplifiers": [
+      "older age",
+      "female sex",
+      "thiazide diuretic",
+      "low baseline sodium",
+      "falls/confusion"
+    ],
+    "source": "Local Interaction Rule: SSRI/SNRI hyponatremia v1"
+  },
+  {
+    "id": "INT-APIXABAN-FALL-HB-001",
+    "drugs": [
+      "apixaban"
+    ],
+    "severity": "high",
+    "risk": "Occult bleeding after trauma/fall, especially with hemoglobin drop",
+    "mechanism": "Factor Xa inhibition reduces clot formation; trauma can cause intracranial, retroperitoneal, GI, or soft-tissue bleeding without obvious external bleeding.",
+    "recommendation": "In an anticoagulated patient with recent fall plus new confusion or hemoglobin drop, flag for urgent bleeding assessment and imaging/labs per local protocol.",
+    "monitoring": [
+      "hemoglobin/hematocrit trend",
+      "bleeding signs",
+      "head CT if head injury or confusion",
+      "renal function",
+      "last apixaban dose"
+    ],
+    "patient_factor_amplifiers": [
+      "older age",
+      "renal impairment",
+      "recent fall/trauma",
+      "concomitant antiplatelet/NSAID"
+    ],
+    "source": "Local Safety Rule: apixaban fall and occult bleeding v1"
   }
 ]
