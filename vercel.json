@@ -1,12 +1,21 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ],
   "functions": {
     "api/chat.js": {
       "maxDuration": 60
+    },
+    "api/side-ask.js": {
+      "maxDuration": 30
     }
   }
 }
