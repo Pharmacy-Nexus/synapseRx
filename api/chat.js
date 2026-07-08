@@ -313,13 +313,67 @@ module.exports = async (req, res) => {
 
     if (!upstream.ok) {
       const errorText = await upstream.text();
+      const providerDetails = safeParseJson(errorText) || errorText.slice(0, 500);
       console.error('AI provider request failed', {
         status: upstream.status,
-        details: safeParseJson(errorText) || errorText.slice(0, 500)
+        details: providerDetails
       });
-      return res.status(502).json({
-        error: 'AI service failed to generate a response. Please retry.',
-        pipeline: process.env.NEXUS_DEBUG_PIPELINE === 'true' ? pipelineContext : undefined
+
+      // Some NVIDIA endpoints intermittently reject or fail streaming requests.
+      // Do one automatic non-stream retry before showing any error to the user.
+      if (shouldStream) {
+        try {
+          const retryUpstream = await callFinalModelWithOneRetry({
+            mode,
+            modeInstruction: [
+              body.modeInstruction,
+              continuationInstruction,
+              'The previous provider streaming attempt failed. Return one concise clinical answer. Do not generate suggested questions.'
+            ].filter(Boolean).join('\n\n'),
+            messages,
+            pipelineContext,
+            attachmentText,
+            quickAccessText,
+            shouldStream: false
+          });
+
+          if (retryUpstream.ok) {
+            const retryData = retryUpstream.__json || await retryUpstream.json();
+            const retryReply = extractMainReply(retryData);
+            if (retryReply) {
+              res.setHeader('X-Nexus-Mode', mode);
+              res.setHeader('X-Nexus-Risk', triage.level);
+              res.setHeader('X-Nexus-Retry', 'non_stream_after_provider_failure');
+              return res.status(200).json({
+                mode,
+                risk: triage.level,
+                reply: retryReply,
+                retry: 'non_stream_after_provider_failure',
+                evidenceBrief: process.env.NEXUS_DEBUG_PIPELINE === 'true' ? pipelineContext : undefined
+              });
+            }
+          } else {
+            const retryErrorText = await retryUpstream.text().catch(() => '');
+            console.error('AI provider non-stream retry failed', {
+              status: retryUpstream.status,
+              details: safeParseJson(retryErrorText) || retryErrorText.slice(0, 500)
+            });
+          }
+        } catch (retryError) {
+          console.error('AI provider non-stream retry crashed', retryError);
+        }
+      }
+
+      const fallbackReply = localFallbackAnswer({ parsed, evidence, triage, validation });
+      res.setHeader('X-Nexus-Mode', mode);
+      res.setHeader('X-Nexus-Risk', triage.level);
+      res.setHeader('X-Nexus-Fallback', 'provider_failed');
+      return res.status(200).json({
+        mode,
+        risk: triage.level,
+        reply: fallbackReply + '\n\n> [!INFO] The AI provider failed this turn, so Atom used the local safety layer. Check Vercel logs for provider status if this repeats.',
+        fallback: 'provider_failed',
+        evidenceBrief: process.env.NEXUS_DEBUG_PIPELINE === 'true' ? pipelineContext : undefined
       });
     }
 
