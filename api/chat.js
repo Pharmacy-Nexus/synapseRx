@@ -152,6 +152,30 @@ async function readProviderJson(upstream) {
   catch { return { raw }; }
 }
 
+function extractMainReply(data) {
+  return String(data?.choices?.[0]?.message?.content || '').trim();
+}
+
+async function callFinalModelWithOneRetry(args) {
+  let upstream = await callFinalModel(args);
+  if (args.shouldStream) return upstream;
+  if (!upstream.ok) return upstream;
+  const data = await readProviderJson(upstream);
+  const reply = extractMainReply(data);
+  if (reply) return { ok: true, status: upstream.status, __json: data };
+  const retry = await callFinalModel({
+    ...args,
+    modeInstruction: [
+      args.modeInstruction,
+      'Previous provider attempt returned empty text. Return one clean answer using the locked case facts and evidence only.'
+    ].filter(Boolean).join('\n\n')
+  });
+  if (!retry.ok) return retry;
+  const retryData = await readProviderJson(retry);
+  return { ok: true, status: retry.status, __json: retryData };
+}
+
+
 
 function extractAlreadyClinical(text = '') {
   return /\b(patient|case|drug|medicine|medication|symptom|diagnosis|lab|labs|bleeding|seizure|unconscious|chest pain|breathing)\b|مريض|حالة|دواء|دوا|اعراض|أعراض|تحليل|تحاليل|نزيف|تشنج|اغماء|إغماء|اختناق|صدر|تنفس/.test(String(text || '').toLowerCase());
@@ -267,7 +291,7 @@ module.exports = async (req, res) => {
 
     let upstream;
     try {
-      upstream = await callFinalModel({
+      upstream = await callFinalModelWithOneRetry({
         mode,
         modeInstruction: [body.modeInstruction, continuationInstruction].filter(Boolean).join('\n\n'),
         messages,
@@ -309,8 +333,8 @@ module.exports = async (req, res) => {
       return relayNvidiaStream(upstream, res, emptyStreamFallback);
     }
 
-    const data = await upstream.json();
-    const reply = data?.choices?.[0]?.message?.content || localFallbackAnswer({ parsed, evidence, triage, validation });
+    const data = upstream.__json || await upstream.json();
+    const reply = extractMainReply(data) || localFallbackAnswer({ parsed, evidence, triage, validation });
     return res.status(200).json({
       mode,
       risk: triage.level,
