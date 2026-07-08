@@ -584,12 +584,14 @@ function scoreQuickAccessNote(note, text = "") {
   return { score, strongHits };
 }
 
-function getRelevantQuickAccess(text = "", limit = 2) {
+function getRelevantQuickAccess(text = "", limit = 2, options = {}) {
   const source = String(text || "").trim();
   if (!source || !state.quickAccess.length) return [];
+  const minScore = options.minScore ?? 16;
+  const minStrongHits = options.minStrongHits ?? 2;
   return state.quickAccess
     .map(note => ({ note, ...scoreQuickAccessNote(note, source) }))
-    .filter(item => item.score >= 8 && item.strongHits >= 1)
+    .filter(item => item.score >= minScore && item.strongHits >= minStrongHits)
     .sort((a, b) => b.score - a.score || new Date(b.note.updated_at) - new Date(a.note.updated_at))
     .slice(0, limit)
     .map(item => item.note);
@@ -624,7 +626,7 @@ function getLatestClinicalUserMessageText(conversation = currentConversation()) 
 }
 
 function buildQuickAccessContext(latestUserText = "") {
-  const notes = getRelevantQuickAccess(latestUserText, MAX_QUICK_ACCESS_CONTEXT_NOTES);
+  const notes = getRelevantQuickAccess(latestUserText, MAX_QUICK_ACCESS_CONTEXT_NOTES, { minScore: 20, minStrongHits: 2 });
   if (!notes.length) return "";
   return notes.map((note, index) => {
     const tags = note.tags?.length ? ` | Tags: ${note.tags.join(", ")}` : "";
@@ -678,8 +680,12 @@ function renderQuickAccess() {
   });
 }
 
-function createQuickRecallNode(text = "") {
-  const notes = getRelevantQuickAccess(text, 3);
+function createQuickRecallNode(text = "", options = {}) {
+  const raw = String(text || "");
+  if (/temporary response issue|connection error|out of scope/i.test(raw)) return null;
+  if (options.mode && options.mode !== "general_chat" && !options.allowClinicalRecall) return null;
+  if (/urgency level|emergency|serotonin syndrome|anaphylaxis|qtc|hyponatremia|hyperkalemia|bleeding|apixaban|warfarin|doac/i.test(raw) && !options.allowClinicalRecall) return null;
+  const notes = getRelevantQuickAccess(raw, 2, { minScore: 24, minStrongHits: 3 });
   if (!notes.length) return null;
   const wrap = document.createElement("div");
   wrap.className = "quick-recall";
@@ -1152,7 +1158,7 @@ function createMessageNode(role, content, options = {}) {
   }
 
   if (role === "assistant") {
-    const recall = createQuickRecallNode(cleanContent);
+    const recall = createQuickRecallNode(cleanContent, { mode: options.mode });
     if (recall) body.appendChild(recall);
   }
 
@@ -1487,6 +1493,30 @@ function buildFallbackRelatedQuestions(text = "") {
       "Why can SGLT2 inhibitors cause euglycemic DKA during illness?",
       "When should the SGLT2 inhibitor be restarted after AKI?",
       "What sick-day counseling should be documented for this patient?"
+    ];
+  }
+
+  if (/serotonin syndrome|sertraline|duloxetine|tramadol|amitriptyline|cyproheptadine|serotonergic|سيـ?روتونين/.test(t)) {
+    return [
+      "Why is tramadol the likely trigger in this same case?",
+      "Which serotonergic medicines should be flagged for urgent review?",
+      "What monitoring is needed in the first 24 hours for serotonin syndrome?"
+    ];
+  }
+
+  if (/hyponatremia|siadh|sodium|na\+|thiazide|hydrochlorothiazide|صوديوم|نقص صوديوم/.test(t)) {
+    return [
+      "Which medicines are most likely causing hyponatremia here?",
+      "What labs distinguish SIADH from hypovolemic hyponatremia?",
+      "How should sodium correction be monitored safely?"
+    ];
+  }
+
+  if (/qtc|torsades|qt prolong|ondansetron|hERG|hypokalemia|hypomagnesemia|رسم قلب/.test(t)) {
+    return [
+      "Which medicines are increasing QT risk in this same case?",
+      "What electrolyte targets reduce torsades risk here?",
+      "What drugs should be avoided while QTc remains above 500 ms?"
     ];
   }
 
@@ -1828,6 +1858,19 @@ async function buildAttachmentPayloads(files) {
   return payloads;
 }
 
+
+async function retryAssistantReplyOnce(requestPayload, signal) {
+  const retryResponse = await fetch(API_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...requestPayload, stream: false }),
+    signal
+  });
+  if (!retryResponse.ok) return "";
+  const data = await retryResponse.json().catch(() => null);
+  return String(data?.reply || "").trim();
+}
+
 async function streamAssistantReply(conversation) {
   const assistantMessage = {
     role: "assistant",
@@ -1863,16 +1906,18 @@ async function streamAssistantReply(conversation) {
   }, 100);
 
   try {
+    const requestPayload = {
+      mode: state.activeMode,
+      modeInstruction: MODE_META[state.activeMode].prompt,
+      messages: buildApiMessages(conversation.messages),
+      quickAccessContext: buildQuickAccessContext(getLatestClinicalUserMessageText(conversation)),
+      stream: true
+    };
+
     const response = await fetch(API_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mode: state.activeMode,
-        modeInstruction: MODE_META[state.activeMode].prompt,
-        messages: buildApiMessages(conversation.messages),
-        quickAccessContext: buildQuickAccessContext(getLatestClinicalUserMessageText(conversation)),
-        stream: true
-      }),
+      body: JSON.stringify(requestPayload),
       signal: state.abortController.signal
     });
 
@@ -1962,7 +2007,8 @@ async function streamAssistantReply(conversation) {
     }
 
     if (!assistantMessage.content.trim()) {
-      assistantMessage.content = "### Temporary response issue\nAtom did not receive text from the model for this turn. Please resend the question or choose a suggested clinical prompt below.";
+      const retryText = await retryAssistantReplyOnce(requestPayload, state.abortController.signal).catch(() => "");
+      assistantMessage.content = retryText || "### Temporary response issue\nAtom did not receive text from the model for this turn. Please resend the question in one clear sentence.";
     }
     finalizeAssistantNode(assistantBody, assistantMessage);
     await persistConversation(conversation, {});
@@ -2008,7 +2054,7 @@ function finalizeAssistantNode(body, message) {
   if (related.length) body.appendChild(createRelatedQuestionsNode(related));
 
   try {
-    const recall = createQuickRecallNode(rawContent);
+    const recall = createQuickRecallNode(rawContent, { mode: message.mode });
     if (recall) body.appendChild(recall);
   } catch (error) {
     console.warn("Quick recall rendering skipped:", error);

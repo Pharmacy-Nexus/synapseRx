@@ -90,3 +90,30 @@ This patch keeps the v5.13 Atom rebrand and avoids API/routing changes.
 - `data/clinical_rules.json`
 - `data/interactions.json`
 - `README.md`
+
+
+## v5.15 — Fact Lock + Source Cleanup Patch
+
+Patch files only release.
+
+### Fixed
+- Added Case Fact Lock instructions to reduce invented/changed case values, timelines, doses, and lab numbers.
+- Tightened clinical-rule triggering so broad words like renal/blood do not surface unrelated ACEI/NSAID/warfarin sources.
+- Added local rules for serotonin syndrome, QT prolongation, SSRI/SNRI/thiazide hyponatremia, and DOAC fall/occult bleeding.
+- Added key monographs/aliases/interactions for sertraline, duloxetine, tramadol, amitriptyline, ondansetron, and apixaban.
+- Quick Access recall is now hidden for high-risk clinical answers unless explicitly allowed, preventing unrelated saved notes from appearing under emergency cases.
+- Added one silent non-stream retry if the provider returns empty text.
+- Updated cache busting to `script.js?v=5.15` and `style.css?v=5.15`.
+
+### Modified files
+- `index.html`
+- `script.js`
+- `api/chat.js`
+- `lib/composer.js`
+- `lib/engines.js`
+- `lib/evidenceBrief.js`
+- `data/clinical_rules.json`
+- `data/drug_aliases.json`
+- `data/drug_monographs.json`
+- `data/interactions.json`
+- `README.md`
