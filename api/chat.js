@@ -4,7 +4,7 @@ const { localParseQuestion, inheritContextIfNeeded, getRecentContextText, inferM
 const { normalizeDrugList } = require('../lib/normalizer');
 const { retrieveEvidence, triageRisk } = require('../lib/engines');
 const { buildEvidenceBrief } = require('../lib/evidenceBrief');
-const { callFinalModel, callSideAskModel, relayNvidiaStream, localFallbackAnswer } = require('../lib/composer');
+const { MODEL, SIDE_MODEL, API_URL, callFinalModel, callSideAskModel, relayNvidiaStream, localFallbackAnswer } = require('../lib/composer');
 
 const MODE_LABELS = {
   general_chat: 'General Chat',
@@ -213,8 +213,14 @@ module.exports = async (req, res) => {
       try {
         let upstream = await callSideAskModel({ question });
         if (!upstream.ok) {
-          console.error('Side Ask provider failed', { status: upstream.status });
-          return res.status(502).json({ error: 'Side Ask AI provider failed. Check NVIDIA_API_KEY / NVIDIA_MODEL in Vercel.' });
+          const sideErrorText = await upstream.text().catch(() => '');
+          console.error('Side Ask provider failed', {
+            status: upstream.status,
+            model: SIDE_MODEL,
+            apiUrl: API_URL,
+            details: safeParseJson(sideErrorText) || sideErrorText.slice(0, 500)
+          });
+          return res.status(502).json({ error: 'Side Ask AI provider failed. Check NVIDIA_API_KEY / NEXUS_SIDE_MODEL in Vercel.' });
         }
         let data = await readProviderJson(upstream);
         let reply = extractAiReply(data);
@@ -302,7 +308,7 @@ module.exports = async (req, res) => {
       });
     } catch (error) {
       if (error.name === 'AbortError') {
-        const fallbackReply = localFallbackAnswer({ parsed, evidence, triage, validation });
+        const fallbackReply = localFallbackAnswer({ parsed, evidence, triage, validation, reason: 'timeout' });
         res.setHeader('X-Nexus-Mode', mode);
         res.setHeader('X-Nexus-Risk', triage.level);
         res.setHeader('X-Nexus-Fallback', 'composer_timeout');
@@ -316,6 +322,8 @@ module.exports = async (req, res) => {
       const providerDetails = safeParseJson(errorText) || errorText.slice(0, 500);
       console.error('AI provider request failed', {
         status: upstream.status,
+        model: MODEL,
+        apiUrl: API_URL,
         details: providerDetails
       });
 
@@ -356,6 +364,8 @@ module.exports = async (req, res) => {
             const retryErrorText = await retryUpstream.text().catch(() => '');
             console.error('AI provider non-stream retry failed', {
               status: retryUpstream.status,
+              model: MODEL,
+              apiUrl: API_URL,
               details: safeParseJson(retryErrorText) || retryErrorText.slice(0, 500)
             });
           }
@@ -364,7 +374,7 @@ module.exports = async (req, res) => {
         }
       }
 
-      const fallbackReply = localFallbackAnswer({ parsed, evidence, triage, validation });
+      const fallbackReply = localFallbackAnswer({ parsed, evidence, triage, validation, reason: 'provider_failed' });
       res.setHeader('X-Nexus-Mode', mode);
       res.setHeader('X-Nexus-Risk', triage.level);
       res.setHeader('X-Nexus-Fallback', 'provider_failed');
@@ -383,12 +393,12 @@ module.exports = async (req, res) => {
     if (shadowCheck?.enabled) res.setHeader('X-Nexus-Shadow', 'enabled');
 
     if (shouldStream && upstream.body) {
-      const emptyStreamFallback = localFallbackAnswer({ parsed, evidence, triage, validation });
+      const emptyStreamFallback = localFallbackAnswer({ parsed, evidence, triage, validation, reason: 'empty_response' });
       return relayNvidiaStream(upstream, res, emptyStreamFallback);
     }
 
     const data = upstream.__json || await upstream.json();
-    const reply = extractMainReply(data) || localFallbackAnswer({ parsed, evidence, triage, validation });
+    const reply = extractMainReply(data) || localFallbackAnswer({ parsed, evidence, triage, validation, reason: 'empty_response' });
     return res.status(200).json({
       mode,
       risk: triage.level,
