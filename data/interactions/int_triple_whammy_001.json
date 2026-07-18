@@ -1,0 +1,32 @@
+{
+  "id": "INT-TRIPLE-WHAMMY-001",
+  "drugs": [
+    "ramipril",
+    "diclofenac",
+    "furosemide"
+  ],
+  "severity": "high",
+  "risk": "Triple-whammy acute kidney injury risk",
+  "mechanism": "ACE inhibitor/ARB + diuretic + NSAID can reduce renal perfusion and filtration through combined hemodynamic effects.",
+  "recommendation": "Avoid the combination when possible. If unavoidable, ensure hydration, baseline renal function/electrolytes, short NSAID duration, and follow-up labs.",
+  "monitoring": [
+    "baseline and follow-up serum creatinine",
+    "eGFR",
+    "serum potassium",
+    "blood pressure",
+    "urine output"
+  ],
+  "patient_factor_amplifiers": [
+    "CKD",
+    "older age",
+    "heart failure",
+    "dehydration",
+    "diabetes"
+  ],
+  "source_ids": [
+    "local_clinical_rule_triple_whammy_v1"
+  ],
+  "required_fields": [],
+  "urgency_changers": [],
+  "pharmacist_traps": []
+}

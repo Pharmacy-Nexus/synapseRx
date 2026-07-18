@@ -1,0 +1,28 @@
+{
+  "id": "INT-WARF-AMIO-001",
+  "drugs": [
+    "warfarin",
+    "amiodarone"
+  ],
+  "severity": "high",
+  "risk": "Increased INR and bleeding risk",
+  "mechanism": "Amiodarone inhibits warfarin metabolism, increasing anticoagulant effect.",
+  "recommendation": "Requires close INR monitoring and prescriber-led warfarin dose adjustment. Counsel for bleeding symptoms.",
+  "monitoring": [
+    "INR",
+    "bleeding/bruising",
+    "hemoglobin if bleeding suspected"
+  ],
+  "patient_factor_amplifiers": [
+    "older age",
+    "liver disease",
+    "history of bleeding",
+    "concurrent antiplatelet/NSAID"
+  ],
+  "source_ids": [
+    "local_interaction_rule_warfarin_plus_amiodarone_v1"
+  ],
+  "required_fields": [],
+  "urgency_changers": [],
+  "pharmacist_traps": []
+}

@@ -1,0 +1,36 @@
+{
+  "id": "INT-WARF-PARA-001",
+  "drugs": [
+    "warfarin",
+    "paracetamol"
+  ],
+  "severity": "moderate",
+  "risk": "Repeated higher-dose paracetamol use may increase INR and bleeding risk; occasional use is generally lower risk than NSAIDs.",
+  "mechanism": "The interaction appears dose- and duration-dependent and may involve interference with the vitamin K cycle; the exact mechanism is not fully established.",
+  "recommendation": "Prefer the lowest effective dose for the shortest duration. If repeated use, especially around or above 2 g/day for several days, is needed, notify the anticoagulation team and consider closer INR monitoring.",
+  "monitoring": [
+    "INR when repeated use is clinically relevant",
+    "bruising or bleeding",
+    "total paracetamol dose and duration"
+  ],
+  "patient_factor_amplifiers": [
+    "high baseline INR",
+    "older age",
+    "liver disease",
+    "poor nutrition",
+    "concurrent bleeding-risk medicines"
+  ],
+  "required_fields": [
+    "inr",
+    "bleeding_symptoms"
+  ],
+  "urgency_changers": [
+    "Active bleeding, melena, hematemesis, hematuria, severe headache, syncope, or hemodynamic instability."
+  ],
+  "pharmacist_traps": [
+    "Do not describe paracetamol as completely interaction-free with warfarin."
+  ],
+  "source_ids": [
+    "local_interaction_warfarin_paracetamol_v1"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "id": "INT-ACEI-NSAID-001",
+  "drugs": [
+    "ramipril",
+    "diclofenac"
+  ],
+  "severity": "moderate_to_high",
+  "risk": "Acute kidney injury, reduced antihypertensive effect, possible hyperkalemia",
+  "mechanism": "NSAIDs constrict the afferent renal arteriole while ACE inhibitors dilate the efferent arteriole, reducing glomerular filtration pressure in susceptible patients.",
+  "recommendation": "Use the shortest NSAID duration if unavoidable, avoid in high-risk renal/dehydrated patients, and check renal function and potassium when clinically relevant.",
+  "monitoring": [
+    "serum creatinine",
+    "eGFR",
+    "serum potassium",
+    "blood pressure",
+    "hydration status"
+  ],
+  "patient_factor_amplifiers": [
+    "CKD",
+    "dehydration",
+    "heart failure",
+    "older age",
+    "diuretic use"
+  ],
+  "source_ids": [
+    "local_interaction_rule_acei_plus_nsaid_v1"
+  ],
+  "required_fields": [],
+  "urgency_changers": [],
+  "pharmacist_traps": []
+}

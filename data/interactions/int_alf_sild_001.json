@@ -1,0 +1,29 @@
+{
+  "id": "INT-ALF-SILD-001",
+  "drugs": [
+    "alfuzosin",
+    "sildenafil"
+  ],
+  "severity": "moderate_to_high",
+  "risk": "Symptomatic hypotension, dizziness, syncope, falls",
+  "mechanism": "Alpha-1 blockade and PDE5 inhibition both lower vascular tone and can have additive blood-pressure lowering effects.",
+  "recommendation": "Avoid unsafe self-combination. If prescribed together, use cautious timing/dosing and counsel about dizziness, syncope, and standing slowly.",
+  "monitoring": [
+    "blood pressure symptoms",
+    "dizziness/syncope",
+    "fall risk",
+    "concurrent antihypertensives"
+  ],
+  "patient_factor_amplifiers": [
+    "older age",
+    "baseline hypotension",
+    "multiple antihypertensives",
+    "dehydration"
+  ],
+  "source_ids": [
+    "local_interaction_rule_alpha_blocker_plus_pde5_inhibitor_v1"
+  ],
+  "required_fields": [],
+  "urgency_changers": [],
+  "pharmacist_traps": []
+}

@@ -1,0 +1,28 @@
+{
+  "id": "INT-WARF-ASP-001",
+  "drugs": [
+    "warfarin",
+    "aspirin"
+  ],
+  "severity": "high",
+  "risk": "Bleeding risk due to combined anticoagulant and antiplatelet effect",
+  "mechanism": "Warfarin anticoagulation plus aspirin platelet inhibition increases bleeding risk.",
+  "recommendation": "Only combine when there is a clear prescriber-approved indication. Counsel for bleeding and monitor closely.",
+  "monitoring": [
+    "bleeding/bruising",
+    "INR",
+    "GI bleeding symptoms"
+  ],
+  "patient_factor_amplifiers": [
+    "history of ulcer",
+    "older age",
+    "NSAID use",
+    "liver disease"
+  ],
+  "source_ids": [
+    "local_interaction_rule_warfarin_plus_aspirin_v1"
+  ],
+  "required_fields": [],
+  "urgency_changers": [],
+  "pharmacist_traps": []
+}

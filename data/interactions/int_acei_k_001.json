@@ -1,0 +1,31 @@
+{
+  "id": "INT-ACEI-K-001",
+  "drugs": [
+    "ramipril",
+    "potassium chloride"
+  ],
+  "severity": "high",
+  "risk": "Hyperkalemia",
+  "mechanism": "ACE inhibitors reduce aldosterone-mediated potassium excretion; potassium supplementation adds exogenous potassium load.",
+  "recommendation": "Avoid routine potassium supplementation unless there is a clear indication and potassium/renal function are monitored.",
+  "monitoring": [
+    "serum potassium",
+    "serum creatinine",
+    "eGFR",
+    "ECG if symptomatic or severe hyperkalemia suspected"
+  ],
+  "patient_factor_amplifiers": [
+    "CKD",
+    "older age",
+    "diabetes",
+    "dehydration",
+    "concurrent NSAID",
+    "potassium-sparing diuretic"
+  ],
+  "source_ids": [
+    "local_interaction_rule_acei_plus_potassium_v1"
+  ],
+  "required_fields": [],
+  "urgency_changers": [],
+  "pharmacist_traps": []
+}

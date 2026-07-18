@@ -1,0 +1,29 @@
+{
+  "id": "INT-ARB-K-001",
+  "drugs": [
+    "losartan",
+    "potassium chloride"
+  ],
+  "severity": "high",
+  "risk": "Hyperkalemia",
+  "mechanism": "ARBs reduce aldosterone-mediated potassium excretion; potassium supplements increase potassium load.",
+  "recommendation": "Avoid routine potassium supplementation unless indicated and monitored.",
+  "monitoring": [
+    "serum potassium",
+    "serum creatinine",
+    "eGFR"
+  ],
+  "patient_factor_amplifiers": [
+    "CKD",
+    "older age",
+    "diabetes",
+    "dehydration",
+    "NSAID use"
+  ],
+  "source_ids": [
+    "local_interaction_rule_arb_plus_potassium_v1"
+  ],
+  "required_fields": [],
+  "urgency_changers": [],
+  "pharmacist_traps": []
+}
