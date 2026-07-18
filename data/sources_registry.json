@@ -1,0 +1,352 @@
+{
+  "local_drug_monograph_ramipril_v1": {
+    "id": "local_drug_monograph_ramipril_v1",
+    "title": "Local Drug Monograph: ramipril v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_drug_monograph",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_drug_monograph_potassium_chloride_v1": {
+    "id": "local_drug_monograph_potassium_chloride_v1",
+    "title": "Local Drug Monograph: potassium chloride v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_drug_monograph",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_drug_monograph_diclofenac_v1": {
+    "id": "local_drug_monograph_diclofenac_v1",
+    "title": "Local Drug Monograph: diclofenac v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_drug_monograph",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_drug_monograph_furosemide_v1": {
+    "id": "local_drug_monograph_furosemide_v1",
+    "title": "Local Drug Monograph: furosemide v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_drug_monograph",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_drug_monograph_warfarin_v1": {
+    "id": "local_drug_monograph_warfarin_v1",
+    "title": "Local Drug Monograph: warfarin v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_drug_monograph",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_drug_monograph_amiodarone_v1": {
+    "id": "local_drug_monograph_amiodarone_v1",
+    "title": "Local Drug Monograph: amiodarone v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_drug_monograph",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_drug_monograph_metformin_v1": {
+    "id": "local_drug_monograph_metformin_v1",
+    "title": "Local Drug Monograph: metformin v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_drug_monograph",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_drug_monograph_insulin_v1": {
+    "id": "local_drug_monograph_insulin_v1",
+    "title": "Local Drug Monograph: insulin v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_drug_monograph",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_drug_monograph_alfuzosin_v1": {
+    "id": "local_drug_monograph_alfuzosin_v1",
+    "title": "Local Drug Monograph: alfuzosin v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_drug_monograph",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_drug_monograph_sildenafil_v1": {
+    "id": "local_drug_monograph_sildenafil_v1",
+    "title": "Local Drug Monograph: sildenafil v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_drug_monograph",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_drug_monograph_losartan_v1": {
+    "id": "local_drug_monograph_losartan_v1",
+    "title": "Local Drug Monograph: losartan v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_drug_monograph",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_drug_monograph_aspirin_v1": {
+    "id": "local_drug_monograph_aspirin_v1",
+    "title": "Local Drug Monograph: aspirin v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_drug_monograph",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_interaction_rule_acei_plus_potassium_v1": {
+    "id": "local_interaction_rule_acei_plus_potassium_v1",
+    "title": "Local Interaction Rule: ACEI + potassium v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_interaction_rule",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_interaction_rule_acei_plus_nsaid_v1": {
+    "id": "local_interaction_rule_acei_plus_nsaid_v1",
+    "title": "Local Interaction Rule: ACEI + NSAID v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_interaction_rule",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_clinical_rule_triple_whammy_v1": {
+    "id": "local_clinical_rule_triple_whammy_v1",
+    "title": "Local Clinical Rule: Triple whammy v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_interaction_rule",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_interaction_rule_warfarin_plus_amiodarone_v1": {
+    "id": "local_interaction_rule_warfarin_plus_amiodarone_v1",
+    "title": "Local Interaction Rule: warfarin + amiodarone v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_interaction_rule",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_interaction_rule_alpha_blocker_plus_pde5_inhibitor_v1": {
+    "id": "local_interaction_rule_alpha_blocker_plus_pde5_inhibitor_v1",
+    "title": "Local Interaction Rule: alpha-blocker + PDE5 inhibitor v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_interaction_rule",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_interaction_rule_arb_plus_potassium_v1": {
+    "id": "local_interaction_rule_arb_plus_potassium_v1",
+    "title": "Local Interaction Rule: ARB + potassium v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_interaction_rule",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_interaction_rule_warfarin_plus_aspirin_v1": {
+    "id": "local_interaction_rule_warfarin_plus_aspirin_v1",
+    "title": "Local Interaction Rule: warfarin + aspirin v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_interaction_rule",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_safety_rule_acei_arb_monitoring_v1": {
+    "id": "local_safety_rule_acei_arb_monitoring_v1",
+    "title": "Local Safety Rule: ACEI/ARB monitoring v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_clinical_rule",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_safety_rule_nsaid_renal_screen_v1": {
+    "id": "local_safety_rule_nsaid_renal_screen_v1",
+    "title": "Local Safety Rule: NSAID renal screen v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_clinical_rule",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_safety_rule_warfarin_bleeding_screen_v1": {
+    "id": "local_safety_rule_warfarin_bleeding_screen_v1",
+    "title": "Local Safety Rule: warfarin bleeding screen v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_clinical_rule",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_safety_rule_insulin_hypoglycemia_v1": {
+    "id": "local_safety_rule_insulin_hypoglycemia_v1",
+    "title": "Local Safety Rule: insulin hypoglycemia v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_clinical_rule",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_safety_rule_pregnancy_red_flags_v1": {
+    "id": "local_safety_rule_pregnancy_red_flags_v1",
+    "title": "Local Safety Rule: pregnancy red flags v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_clinical_rule",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "bccancer_luscpe_case_study": {
+    "id": "bccancer_luscpe_case_study",
+    "title": "BC Cancer Clinical Pharmacy Guide — Case Study 1",
+    "publisher": "BC Cancer",
+    "source_type": "official_case_study",
+    "license_status": "reference_only",
+    "version_date": null,
+    "url": "https://www.bccancer.bc.ca/health-professionals/education-development/pharmacy/clinical-pharmacy-guide-case-studies/case-study-1",
+    "notes": "Official BC Cancer page states cisplatin and etoposide are Class I benefit drugs approved for LUSCPE."
+  },
+  "bccancer_luscpe_patient_handout": {
+    "id": "bccancer_luscpe_patient_handout",
+    "title": "For the Patient: LUSCPE",
+    "publisher": "BC Cancer",
+    "source_type": "official_protocol_handout",
+    "license_status": "reference_only",
+    "version_date": "2009-05-22",
+    "url": "https://www.bccancer.bc.ca/chemotherapy-protocols-site/Documents/Lung/LUSCPE_Handout.pdf",
+    "notes": "Official patient handout describing cisplatin and etoposide and general eligibility context."
+  },
+  "local_drug_spironolactone_v1": {
+    "id": "local_drug_spironolactone_v1",
+    "title": "Local Drug Monograph: spironolactone v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_drug_monograph",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_drug_hydrochlorothiazide_v1": {
+    "id": "local_drug_hydrochlorothiazide_v1",
+    "title": "Local Drug Monograph: hydrochlorothiazide v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_drug_monograph",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_drug_ibuprofen_v1": {
+    "id": "local_drug_ibuprofen_v1",
+    "title": "Local Drug Monograph: ibuprofen v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_drug_monograph",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_drug_paracetamol_v1": {
+    "id": "local_drug_paracetamol_v1",
+    "title": "Local Drug Monograph: paracetamol v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_drug_monograph",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_drug_digoxin_v1": {
+    "id": "local_drug_digoxin_v1",
+    "title": "Local Drug Monograph: digoxin v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_drug_monograph",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_rule_triple_whammy_v1": {
+    "id": "local_rule_triple_whammy_v1",
+    "title": "ACEI/ARB + diuretic + NSAID renal-risk cluster v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_clinical_rule",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_rule_raas_mra_v1": {
+    "id": "local_rule_raas_mra_v1",
+    "title": "RAAS blocker + mineralocorticoid receptor antagonist hyperkalemia screen v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_clinical_rule",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_rule_metformin_acute_renal_v1": {
+    "id": "local_rule_metformin_acute_renal_v1",
+    "title": "Metformin acute illness and renal-risk screen v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_clinical_rule",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  },
+  "local_interaction_warfarin_paracetamol_v1": {
+    "id": "local_interaction_warfarin_paracetamol_v1",
+    "title": "Local Interaction Rule: warfarin + paracetamol v1",
+    "publisher": "Atom local evidence library",
+    "source_type": "internal_interaction_rule",
+    "license_status": "internal_summary",
+    "version_date": null,
+    "url": null,
+    "notes": "Locally maintained structured summary. Replace or supplement with an authoritative source before production clinical use."
+  }
+}
