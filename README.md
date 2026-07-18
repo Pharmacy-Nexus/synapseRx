@@ -1,92 +1,79 @@
-# Atom — v5.13 Rebrand Patch
+# Atom v5.20 — Structured Data Engine
 
-Brand/UI-only patch on top of v5.12.
+This build migrates Atom from flat clinical JSON files to a scalable folder-based data layer while preserving backward compatibility with the old flat files.
 
-## Changed
+## Main changes
 
-- Rebranded visible product name from Nexus to Atom.
-- Updated subtitle to **AI Assistant for Pharmacists**.
-- Replaced logo text `Nx` with `At`.
-- Updated font to **Space Grotesk + IBM Plex Sans Arabic**.
-- Updated primary colors to blue/cyan/violet Atom identity.
-- Updated user-facing prompts from clinical-pharmacist-only wording to broader pharmacist assistant wording.
-- Kept internal `NEXUS_*` environment variables and localStorage keys unchanged to avoid breaking deployments/history.
+- One drug per file under `data/drugs/`, including its aliases and monograph in the same record.
+- One interaction and one clinical rule per file.
+- Global `risk_keywords.json` remains at the data root.
+- Canonical `sources_registry.json` with `source_ids` in clinical records.
+- Protocol retrieval engine with scored matching. Exact protocol-code matches have the highest priority.
+- Deterministic BSA and BMI calculations in JavaScript. The language model receives locked numeric results and is instructed not to recalculate or derive chemotherapy doses from memory.
+- Protocols and calculations are included in the Evidence Brief.
+- Hardcoded drug-specific Shadow Check branches were removed; Shadow Check now reads risks, required data, monitoring, urgency changers, and traps from structured records.
+- Side Ask logic is shared by `/api/chat` and `/api/side-ask` through `lib/sideAskHandler.js`.
+- Continue/resume turns keep the existing conversation mode instead of being forced into Case Analysis.
+- Explicitly selected UI modes are respected using `modeSource: "manual"`.
+- Vercel serves filesystem/API routes before the SPA fallback.
 
----
+## Data layout
 
-# Atom — v5.12 Context Suggestions Repair
+```text
+data/
+├── drugs/
+├── interactions/
+├── clinical_rules/
+├── protocols/
+├── sources_registry.json
+├── risk_keywords.json
+└── SCHEMA.md
+```
 
-Small safe patch on top of v5.11.
+## Backward compatibility
 
-## Fixed
+`lib/data.js` prefers folder records when present. If a folder is absent or empty, it falls back to:
 
-- Old Suggested next questions are removed when the user sends the next message, so they do not stay floating above the composer.
-- Fallback suggestions are now topic-specific and no longer default to static generic prompts.
-- Short follow-ups are treated as referring to the latest clinical case/topic unless the user clearly changes topic.
-- Composer prompt now tells the model to keep follow-up questions specific to the current case.
-- Cache busting updated to `script.js?v=5.12` and `style.css?v=5.12`.
+- `drug_monographs.json`
+- `drug_aliases.json`
+- `interactions.json`
+- `clinical_rules.json`
+- `protocols.json`
 
----
+This allows gradual migration. Once the folder version has been tested, the old flat files can be deleted.
 
-# Atom — v5.10 Stable UI Repair
+## Deployment
 
-This build repairs the broken main chat behavior introduced after Side Ask patches.
+Recommended Vercel environment variables:
 
-## Fixed
-- Main chat no longer crashes after the API returns an assistant answer.
-- Fixed `ensureRelatedQuestions()` using an undefined `content` variable instead of the function argument `text`.
-- Hardened `finalizeAssistantNode()` so suggestions/Quick Recall/Markdown rendering cannot break the assistant response.
-- Kept Side Ask on the same stable `/api/chat` route with `sideAsk: true`.
-- Cache-busted `script.js` and `style.css` to v5.10.
+```text
+NVIDIA_API_KEY=...
+NVIDIA_MODEL=google/gemma-4-31b-it
+NEXUS_SIDE_MODEL=google/gemma-4-31b-it
+NEXUS_COMPOSER_TIMEOUT_MS=55000
+NVIDIA_MAX_TOKENS=2200
+NVIDIA_TEMPERATURE=0.2
+NVIDIA_TOP_P=0.9
+```
 
-## Test order
-1. Hard refresh with Ctrl+F5.
-2. Main chat: `hi`
-3. Main chat: send a clinical question.
-4. Side Ask: `Explain CRP briefly.`
+Do not include quotation marks around environment variable values.
 
-## Notes
-Do not redeploy v5.7, v5.8, or v5.9. This is a repair build based on the rollback plus the critical UI crash fix.
+## Verification
 
+Run locally with Node:
 
-## v5.11 — Streaming + Timeout Repair
+```bash
+node tests/data-engine.test.js
+```
 
-Stability patch after main chat returned only a timeout fallback.
+After deployment, open:
 
-### Fixed
-- Main chat now sends `stream: true` again so the API can start returning tokens instead of waiting for the full AI answer.
-- Composer timeout now has a safe floor (45s) even if Vercel env accidentally sets `NEXUS_COMPOSER_TIMEOUT_MS=25000`.
-- Token budget is dynamic: shorter questions request shorter answers, long cases still get enough room.
-- Clinical rule matching now uses safer term matching and avoids false positives like `blood pressure` triggering warfarin bleeding rules.
-- Added a local emergency rule for suspected medicine-induced anaphylaxis so timeout fallback is clinically relevant for the penicillin test case.
+```text
+/api/debug-env
+```
 
-### Deployment note
-If Vercel has `NEXUS_COMPOSER_TIMEOUT_MS=25000`, remove it or set it to `50000`. This build will still floor it to 45s, but cleaning the env avoids confusion.
+The response now includes loaded counts for drugs, aliases, interactions, rules, protocols, sources, and validation warnings.
 
+## Protocol safety
 
-## v5.14 — Suggestions + clinical-rule cleanup
-
-This patch keeps the v5.13 Atom rebrand and avoids API/routing changes.
-
-### Fixed
-- Suggested chips now render only under the latest assistant response.
-- Old chips are hidden when the user continues the chat.
-- Model-generated canned “Suggested next questions” are stripped/filtered more aggressively.
-- Bleeding/INR suggestions are blocked unless the active case actually includes anticoagulation or active bleeding context.
-- Composer prompt now tells the model not to generate Suggested/Related questions; the UI handles them.
-
-### Added local clinical data
-- SGLT2 inhibitor aliases/monographs and sick-day acute illness rule.
-- Colchicine + clarithromycin high-risk interaction rule.
-- Clarithromycin + atorvastatin myopathy/rhabdomyolysis risk.
-- ARB + NSAID + diuretic triple-whammy rule including losartan + ibuprofen + HCTZ.
-
-### Files changed
-- `script.js`
-- `lib/composer.js`
-- `lib/evidenceBrief.js`
-- `data/drug_aliases.json`
-- `data/drug_monographs.json`
-- `data/clinical_rules.json`
-- `data/interactions.json`
-- `README.md`
+Only protocol facts present in the matched structured record are passed as protocol truth. Dose thresholds and modifications should not be added until verified against a current authoritative protocol. The included LUSCPE record contains only the stable official facts used for retrieval testing and benefit-status questions.

@@ -5,7 +5,7 @@ const MAX_TEXT_FILE_BYTES = 750 * 1024;
 const MAX_QUICK_ACCESS_NOTES = 120;
 const MAX_QUICK_ACCESS_CONTEXT_NOTES = 5;
 const MAX_WORK_SHELF_ITEMS = 60;
-console.info("Atom build", window.NEXUS_BUILD || "v5.13-atom-rebrand");
+console.info("Atom build", window.NEXUS_BUILD || "v5.20-structured-data-engine");
 const HAS_SUPABASE = false;
 const supabase = null;
 
@@ -101,6 +101,7 @@ let state = {
   authMode: "login",
   user: null,
   activeMode: "general_chat",
+  modeSource: "auto",
   conversations: [],
   currentConversationId: null,
   showArchived: false,
@@ -411,6 +412,7 @@ function replaceConversation(conversation) {
 }
 
 async function createNewConversation(render = true) {
+  state.modeSource = "auto";
   const conversation = normalizeConversation({
     id: uid("chat"),
     user_id: state.user?.id || "local",
@@ -1010,6 +1012,7 @@ function renderHistory() {
       `;
       row.querySelector(".history-item").addEventListener("click", () => {
         state.currentConversationId = conversation.id;
+        state.modeSource = "auto";
         selectMode(conversation.mode || "general_chat", false);
         renderAll();
         closeSidebarAfterNavigation();
@@ -1868,6 +1871,7 @@ async function streamAssistantReply(conversation) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         mode: state.activeMode,
+        modeSource: state.modeSource,
         modeInstruction: MODE_META[state.activeMode].prompt,
         messages: buildApiMessages(conversation.messages),
         quickAccessContext: buildQuickAccessContext(getLatestClinicalUserMessageText(conversation)),
@@ -1883,6 +1887,7 @@ async function streamAssistantReply(conversation) {
 
     const serverMode = response.headers.get("X-Nexus-Mode");
     if (serverMode && MODE_META[serverMode] && serverMode !== state.activeMode) {
+      state.modeSource = "auto";
       selectMode(serverMode, false);
       assistantMessage.mode = serverMode;
       conversation.mode = serverMode;
@@ -2360,6 +2365,7 @@ function bindEvents() {
   });
   document.querySelectorAll(".mode-btn, .mode-chip-btn").forEach(btn => {
     btn.addEventListener("click", () => {
+      state.modeSource = "manual";
       selectMode(btn.dataset.mode);
       closeSidebarAfterNavigation();
       setTimeout(() => els.messageInput.focus(), 50);

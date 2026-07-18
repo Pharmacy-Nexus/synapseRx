@@ -1,26 +1,13 @@
 {
   "version": 2,
   "functions": {
-    "api/chat.js": {
-      "maxDuration": 60
-    },
-    "api/side-ask.js": {
-      "maxDuration": 30
-    },
-    "api/test-nvidia.js": {
-      "maxDuration": 30
-    },
-    "api/debug-env.js": {
-      "maxDuration": 10
-    }
+    "api/chat.js": { "maxDuration": 60 },
+    "api/side-ask.js": { "maxDuration": 30 },
+    "api/test-nvidia.js": { "maxDuration": 30 },
+    "api/debug-env.js": { "maxDuration": 10 }
   },
   "routes": [
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
