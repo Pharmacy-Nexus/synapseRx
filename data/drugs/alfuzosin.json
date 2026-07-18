@@ -1,0 +1,26 @@
+{
+  "generic": "alfuzosin",
+  "aliases": [
+    "alfuzosin",
+    "xatral",
+    "الفيزوسين",
+    "زاترال"
+  ],
+  "class": "alpha-1 blocker",
+  "core_uses": [
+    "benign prostatic hyperplasia symptoms"
+  ],
+  "key_warnings": [
+    "orthostatic hypotension",
+    "syncope",
+    "additive hypotension with PDE5 inhibitors or antihypertensives"
+  ],
+  "monitoring": [
+    "blood pressure",
+    "dizziness/syncope",
+    "fall risk"
+  ],
+  "source_ids": [
+    "local_drug_monograph_alfuzosin_v1"
+  ]
+}

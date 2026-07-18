@@ -1,0 +1,27 @@
+{
+  "generic": "warfarin",
+  "aliases": [
+    "warfarin",
+    "coumadin",
+    "وارفارين",
+    "كومادين"
+  ],
+  "class": "vitamin K antagonist anticoagulant",
+  "core_uses": [
+    "thromboembolism prevention/treatment where indicated"
+  ],
+  "key_warnings": [
+    "major bleeding",
+    "many drug/food interactions",
+    "teratogenic risk",
+    "requires INR monitoring"
+  ],
+  "monitoring": [
+    "INR",
+    "bleeding/bruising",
+    "hemoglobin if bleeding suspected"
+  ],
+  "source_ids": [
+    "local_drug_monograph_warfarin_v1"
+  ]
+}

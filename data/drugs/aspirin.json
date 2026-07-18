@@ -1,0 +1,29 @@
+{
+  "generic": "aspirin",
+  "aliases": [
+    "aspirin",
+    "aspocid",
+    "aspegic",
+    "اسبرين",
+    "اسبوسيد"
+  ],
+  "class": "antiplatelet / NSAID at analgesic doses",
+  "core_uses": [
+    "secondary cardiovascular prevention when indicated",
+    "pain/fever at non-antiplatelet doses"
+  ],
+  "key_warnings": [
+    "GI bleeding",
+    "bleeding risk with anticoagulants",
+    "hypersensitivity",
+    "avoid in children with viral illness"
+  ],
+  "monitoring": [
+    "bleeding symptoms",
+    "GI symptoms",
+    "concurrent anticoagulants/NSAIDs"
+  ],
+  "source_ids": [
+    "local_drug_monograph_aspirin_v1"
+  ]
+}

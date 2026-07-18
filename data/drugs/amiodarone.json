@@ -1,0 +1,30 @@
+{
+  "generic": "amiodarone",
+  "aliases": [
+    "amiodarone",
+    "cordarone",
+    "اميودارون",
+    "كوردارون"
+  ],
+  "class": "antiarrhythmic",
+  "core_uses": [
+    "rhythm control in selected arrhythmias"
+  ],
+  "key_warnings": [
+    "thyroid toxicity",
+    "pulmonary toxicity",
+    "liver toxicity",
+    "QT prolongation",
+    "warfarin interaction"
+  ],
+  "monitoring": [
+    "ECG",
+    "thyroid function",
+    "liver function",
+    "pulmonary symptoms",
+    "INR if on warfarin"
+  ],
+  "source_ids": [
+    "local_drug_monograph_amiodarone_v1"
+  ]
+}

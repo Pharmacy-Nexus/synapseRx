@@ -1,0 +1,32 @@
+{
+  "generic": "diclofenac",
+  "aliases": [
+    "diclofenac",
+    "voltaren",
+    "cataflam",
+    "olfen",
+    "ديكلوفيناك",
+    "فولتارين",
+    "كتافلام"
+  ],
+  "class": "NSAID",
+  "core_uses": [
+    "pain",
+    "inflammation"
+  ],
+  "key_warnings": [
+    "GI bleeding",
+    "kidney injury",
+    "fluid retention",
+    "blood pressure elevation",
+    "cardiovascular risk"
+  ],
+  "monitoring": [
+    "renal function in at-risk patients",
+    "blood pressure",
+    "GI bleeding symptoms"
+  ],
+  "source_ids": [
+    "local_drug_monograph_diclofenac_v1"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "generic": "losartan",
+  "aliases": [
+    "losartan",
+    "cozaar",
+    "لوسارتان",
+    "كوزار"
+  ],
+  "class": "angiotensin receptor blocker (ARB)",
+  "core_uses": [
+    "hypertension",
+    "renal protection in selected diabetic kidney disease",
+    "heart failure in selected patients"
+  ],
+  "key_warnings": [
+    "hyperkalemia",
+    "renal function deterioration",
+    "avoid in pregnancy"
+  ],
+  "monitoring": [
+    "blood pressure",
+    "serum potassium",
+    "serum creatinine/eGFR"
+  ],
+  "source_ids": [
+    "local_drug_monograph_losartan_v1"
+  ]
+}

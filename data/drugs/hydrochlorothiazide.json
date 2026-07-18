@@ -1,0 +1,29 @@
+{
+  "generic": "hydrochlorothiazide",
+  "aliases": [
+    "hydrochlorothiazide",
+    "hctz",
+    "hydrodiuril",
+    "هيدروكلوروثيازيد"
+  ],
+  "class": "thiazide diuretic",
+  "core_uses": [
+    "hypertension",
+    "edema in selected patients"
+  ],
+  "key_warnings": [
+    "hyponatremia",
+    "hypokalemia",
+    "volume depletion",
+    "renal function changes"
+  ],
+  "monitoring": [
+    "blood pressure",
+    "serum sodium",
+    "serum potassium",
+    "renal function"
+  ],
+  "source_ids": [
+    "local_drug_hydrochlorothiazide_v1"
+  ]
+}

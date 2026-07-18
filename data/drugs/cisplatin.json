@@ -1,0 +1,28 @@
+{
+  "generic": "cisplatin",
+  "aliases": [
+    "cisplatin",
+    "cis-platin",
+    "سيسبلاتين"
+  ],
+  "class": "platinum antineoplastic",
+  "core_uses": [
+    "protocol-defined cancer treatment"
+  ],
+  "key_warnings": [
+    "nephrotoxicity",
+    "electrolyte loss",
+    "ototoxicity",
+    "neurotoxicity",
+    "high emetogenic potential"
+  ],
+  "monitoring": [
+    "protocol-specific renal function",
+    "electrolytes",
+    "hearing symptoms",
+    "neurologic toxicity"
+  ],
+  "source_ids": [
+    "bccancer_luscpe_patient_handout"
+  ]
+}

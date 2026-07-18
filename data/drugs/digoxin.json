@@ -1,0 +1,28 @@
+{
+  "generic": "digoxin",
+  "aliases": [
+    "digoxin",
+    "lanoxin",
+    "ديجوكسين",
+    "لانوكسين"
+  ],
+  "class": "cardiac glycoside",
+  "core_uses": [
+    "selected atrial fibrillation rate control",
+    "selected heart failure patients"
+  ],
+  "key_warnings": [
+    "narrow therapeutic index",
+    "bradyarrhythmia",
+    "toxicity risk with renal impairment and electrolyte disturbance"
+  ],
+  "monitoring": [
+    "heart rate and ECG",
+    "renal function",
+    "potassium and magnesium",
+    "serum digoxin level when indicated"
+  ],
+  "source_ids": [
+    "local_drug_digoxin_v1"
+  ]
+}

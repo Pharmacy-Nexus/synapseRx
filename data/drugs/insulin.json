@@ -1,0 +1,35 @@
+{
+  "generic": "insulin",
+  "aliases": [
+    "insulin",
+    "actrapid",
+    "novorapid",
+    "humalog",
+    "lantus",
+    "tresiba",
+    "انسولين",
+    "إنسولين",
+    "اكترابيد",
+    "لانتوس"
+  ],
+  "class": "antidiabetic hormone therapy",
+  "core_uses": [
+    "diabetes requiring insulin therapy",
+    "hyperglycemia management"
+  ],
+  "key_warnings": [
+    "hypoglycemia",
+    "dose stacking",
+    "administration errors",
+    "requires glucose monitoring"
+  ],
+  "monitoring": [
+    "blood glucose",
+    "hypoglycemia symptoms",
+    "meal timing",
+    "injection technique"
+  ],
+  "source_ids": [
+    "local_drug_monograph_insulin_v1"
+  ]
+}

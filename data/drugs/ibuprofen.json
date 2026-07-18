@@ -1,0 +1,31 @@
+{
+  "generic": "ibuprofen",
+  "aliases": [
+    "ibuprofen",
+    "brufen",
+    "advil",
+    "nurofen",
+    "ايبوبروفين",
+    "بروفين"
+  ],
+  "class": "NSAID",
+  "core_uses": [
+    "pain",
+    "inflammation",
+    "fever"
+  ],
+  "key_warnings": [
+    "GI bleeding",
+    "kidney injury",
+    "fluid retention",
+    "blood pressure elevation"
+  ],
+  "monitoring": [
+    "renal function in at-risk patients",
+    "blood pressure",
+    "GI bleeding symptoms"
+  ],
+  "source_ids": [
+    "local_drug_ibuprofen_v1"
+  ]
+}

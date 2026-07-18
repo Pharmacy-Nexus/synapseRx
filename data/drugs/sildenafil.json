@@ -1,0 +1,26 @@
+{
+  "generic": "sildenafil",
+  "aliases": [
+    "sildenafil",
+    "viagra",
+    "فاياجرا",
+    "سيلدينافيل"
+  ],
+  "class": "PDE5 inhibitor",
+  "core_uses": [
+    "erectile dysfunction",
+    "pulmonary arterial hypertension under specialist use"
+  ],
+  "key_warnings": [
+    "contraindicated with nitrates",
+    "hypotension risk with alpha-blockers",
+    "visual/hearing symptoms need urgent review"
+  ],
+  "monitoring": [
+    "blood pressure symptoms",
+    "concurrent nitrate or alpha-blocker use"
+  ],
+  "source_ids": [
+    "local_drug_monograph_sildenafil_v1"
+  ]
+}

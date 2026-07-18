@@ -1,0 +1,25 @@
+{
+  "generic": "etoposide",
+  "aliases": [
+    "etoposide",
+    "vp-16",
+    "إيتوبوسايد",
+    "ايتوبوسايد"
+  ],
+  "class": "topoisomerase II inhibitor antineoplastic",
+  "core_uses": [
+    "protocol-defined cancer treatment"
+  ],
+  "key_warnings": [
+    "myelosuppression",
+    "hypersensitivity with infusion",
+    "mucositis and GI toxicity"
+  ],
+  "monitoring": [
+    "CBC",
+    "protocol-specific organ function and toxicity assessment"
+  ],
+  "source_ids": [
+    "bccancer_luscpe_patient_handout"
+  ]
+}

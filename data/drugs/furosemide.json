@@ -1,0 +1,31 @@
+{
+  "generic": "furosemide",
+  "aliases": [
+    "furosemide",
+    "frusemide",
+    "lasix",
+    "لازكس",
+    "فوروسيميد"
+  ],
+  "class": "loop diuretic",
+  "core_uses": [
+    "edema",
+    "heart failure congestion",
+    "hypertension in selected patients"
+  ],
+  "key_warnings": [
+    "dehydration",
+    "hypokalemia",
+    "hypotension",
+    "renal function changes"
+  ],
+  "monitoring": [
+    "weight/edema",
+    "blood pressure",
+    "serum electrolytes",
+    "renal function"
+  ],
+  "source_ids": [
+    "local_drug_monograph_furosemide_v1"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "generic": "ramipril",
+  "aliases": [
+    "ramipril",
+    "tritace",
+    "altace",
+    "راميبريل",
+    "ترايتس"
+  ],
+  "class": "ACE inhibitor",
+  "core_uses": [
+    "hypertension",
+    "heart failure",
+    "cardiovascular risk reduction when indicated"
+  ],
+  "key_warnings": [
+    "hyperkalemia",
+    "renal function deterioration",
+    "angioedema",
+    "hypotension",
+    "avoid in pregnancy"
+  ],
+  "monitoring": [
+    "blood pressure",
+    "serum potassium",
+    "serum creatinine/eGFR after initiation or dose changes"
+  ],
+  "source_ids": [
+    "local_drug_monograph_ramipril_v1"
+  ]
+}

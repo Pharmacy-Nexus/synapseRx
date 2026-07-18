@@ -1,0 +1,34 @@
+{
+  "generic": "potassium chloride",
+  "aliases": [
+    "potassium chloride",
+    "potassium",
+    "kcl",
+    "k-dur",
+    "slow-k",
+    "potassium supplement",
+    "k supplement",
+    "potassium tablet",
+    "potassium tablets",
+    "بوتاسيوم",
+    "كلوريد البوتاسيوم",
+    "مكمل بوتاسيوم"
+  ],
+  "class": "electrolyte supplement",
+  "core_uses": [
+    "treatment or prevention of hypokalemia when clinically indicated"
+  ],
+  "key_warnings": [
+    "hyperkalemia",
+    "GI irritation",
+    "higher risk with ACE inhibitors, ARBs, potassium-sparing diuretics, CKD"
+  ],
+  "monitoring": [
+    "serum potassium",
+    "renal function",
+    "ECG if severe electrolyte abnormality suspected"
+  ],
+  "source_ids": [
+    "local_drug_monograph_potassium_chloride_v1"
+  ]
+}

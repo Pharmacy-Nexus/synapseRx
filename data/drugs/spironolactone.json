@@ -1,0 +1,28 @@
+{
+  "generic": "spironolactone",
+  "aliases": [
+    "spironolactone",
+    "aldactone",
+    "سبيرونولاكتون",
+    "الداكتون"
+  ],
+  "class": "mineralocorticoid receptor antagonist",
+  "core_uses": [
+    "heart failure",
+    "resistant hypertension",
+    "edema in selected patients"
+  ],
+  "key_warnings": [
+    "hyperkalemia",
+    "renal function deterioration",
+    "hypotension"
+  ],
+  "monitoring": [
+    "serum potassium",
+    "serum creatinine/eGFR",
+    "blood pressure"
+  ],
+  "source_ids": [
+    "local_drug_spironolactone_v1"
+  ]
+}

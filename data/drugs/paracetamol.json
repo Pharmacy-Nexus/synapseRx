@@ -1,0 +1,28 @@
+{
+  "generic": "paracetamol",
+  "aliases": [
+    "paracetamol",
+    "acetaminophen",
+    "panadol",
+    "tylenol",
+    "باراسيتامول",
+    "بنادول"
+  ],
+  "class": "non-opioid analgesic and antipyretic",
+  "core_uses": [
+    "pain",
+    "fever"
+  ],
+  "key_warnings": [
+    "dose-related hepatotoxicity",
+    "possible INR elevation with repeated higher-dose use in warfarin patients"
+  ],
+  "monitoring": [
+    "total daily dose",
+    "liver risk factors",
+    "INR when repeated use is clinically relevant with warfarin"
+  ],
+  "source_ids": [
+    "local_drug_paracetamol_v1"
+  ]
+}

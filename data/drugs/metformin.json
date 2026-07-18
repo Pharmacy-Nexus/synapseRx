@@ -1,0 +1,26 @@
+{
+  "generic": "metformin",
+  "aliases": [
+    "metformin",
+    "glucophage",
+    "جلوكوفاج",
+    "ميتفورمين"
+  ],
+  "class": "biguanide antidiabetic",
+  "core_uses": [
+    "type 2 diabetes"
+  ],
+  "key_warnings": [
+    "lactic acidosis risk in severe renal impairment or acute illness",
+    "GI intolerance",
+    "B12 deficiency with long-term use"
+  ],
+  "monitoring": [
+    "eGFR",
+    "glucose/HbA1c",
+    "B12 if long-term or symptomatic"
+  ],
+  "source_ids": [
+    "local_drug_monograph_metformin_v1"
+  ]
+}
