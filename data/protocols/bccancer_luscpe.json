@@ -1,0 +1,39 @@
+{
+  "id": "bccancer_luscpe",
+  "enabled": true,
+  "protocol_code": "LUSCPE",
+  "name": "Therapy of extensive-stage small cell lung cancer with cisplatin and etoposide",
+  "organization": "BC Cancer",
+  "aliases": [
+    "LUSCPE protocol",
+    "BC Cancer LUSCPE"
+  ],
+  "disease_terms": [
+    "extensive small cell lung cancer",
+    "extensive-stage small cell lung cancer",
+    "small cell lung cancer",
+    "SCLC"
+  ],
+  "regimen_drugs": [
+    "cisplatin",
+    "etoposide"
+  ],
+  "match_threshold": 60,
+  "facts": {
+    "benefit_status": {
+      "cisplatin": "Class I",
+      "etoposide": "Class I"
+    },
+    "benefit_status_note": "Class I drugs are used in active cancer treatment or for a purpose defined in an approved treatment protocol."
+  },
+  "baseline_requirements": [
+    "Confirm the current official protocol and eligibility criteria.",
+    "Assess kidney function and performance status before cisplatin-based treatment.",
+    "Use institution-specific laboratory and dose-modification thresholds."
+  ],
+  "source_ids": [
+    "bccancer_luscpe_case_study",
+    "bccancer_luscpe_patient_handout"
+  ],
+  "last_reviewed": "2026-07-18"
+}
