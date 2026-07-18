@@ -1,0 +1,49 @@
+{
+  "id": "RULE-TRIPLE-WHAMMY-AKI-001",
+  "name": "ACEI/ARB + diuretic + NSAID renal-risk cluster",
+  "trigger": {
+    "all_class_groups": [
+      [
+        "ACE inhibitor",
+        "angiotensin receptor blocker (ARB)"
+      ],
+      [
+        "loop diuretic",
+        "thiazide diuretic"
+      ],
+      [
+        "NSAID"
+      ]
+    ]
+  },
+  "risk": "Combined hemodynamic effects can sharply reduce glomerular filtration and precipitate acute kidney injury, especially with dehydration, CKD, heart failure, or hypotension.",
+  "required_info": [
+    "renal function trend",
+    "serum potassium",
+    "blood pressure",
+    "urine output",
+    "hydration/volume status"
+  ],
+  "required_fields": [
+    "renal_function",
+    "serum_potassium",
+    "hydration_status"
+  ],
+  "safety_action": "Treat this as one renal-risk cluster. Flag the NSAID for urgent review and reassess the RAAS blocker and diuretic according to volume status, blood pressure, kidney function, and the treating protocol.",
+  "monitoring": [
+    "serum creatinine/eGFR",
+    "serum potassium",
+    "urine output",
+    "blood pressure",
+    "volume status"
+  ],
+  "urgency_changers": [
+    "Oliguria, rapidly rising creatinine, severe hyperkalemia, hypotension, pulmonary edema, or uremic features."
+  ],
+  "pharmacist_traps": [
+    "Do not evaluate the three medicines as unrelated pairwise interactions."
+  ],
+  "source_ids": [
+    "local_rule_triple_whammy_v1"
+  ]
+}

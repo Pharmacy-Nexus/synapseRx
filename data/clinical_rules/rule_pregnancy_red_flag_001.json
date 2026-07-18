@@ -1,0 +1,43 @@
+{
+  "id": "RULE-PREGNANCY-RED-FLAG-001",
+  "name": "Pregnancy red-flag screen",
+  "trigger_drug_classes": [],
+  "trigger_terms": [
+    "pregnant",
+    "pregnancy",
+    "حامل",
+    "حمل",
+    "جنين",
+    "fetal",
+    "movement"
+  ],
+  "risk": "Pregnancy questions may involve maternal/fetal safety and need conservative triage.",
+  "required_info": [
+    "gestational age",
+    "symptoms",
+    "fetal movement status",
+    "current medicines",
+    "obstetrician advice"
+  ],
+  "safety_action": "Reduced fetal movement, bleeding, severe abdominal pain, severe headache/visual symptoms, or severe hypertension need urgent obstetric assessment.",
+  "source_ids": [
+    "local_safety_rule_pregnancy_red_flags_v1"
+  ],
+  "required_fields": [
+    "gestational_age",
+    "pregnancy_symptoms",
+    "fetal_movement_status",
+    "current_medicines"
+  ],
+  "monitoring": [
+    "maternal symptoms",
+    "blood pressure when relevant",
+    "fetal movement when gestationally relevant"
+  ],
+  "urgency_changers": [
+    "Reduced fetal movement, bleeding, severe abdominal pain, severe headache/visual symptoms, or severe hypertension."
+  ],
+  "pharmacist_traps": [
+    "Do not infer fetal safety from absence of a known interaction alone."
+  ]
+}

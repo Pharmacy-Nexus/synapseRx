@@ -1,0 +1,49 @@
+{
+  "id": "RULE-INSULIN-HYPO-001",
+  "name": "Insulin hypoglycemia and dose stacking screen",
+  "trigger_drug_classes": [
+    "antidiabetic hormone therapy"
+  ],
+  "trigger_terms": [
+    "hypoglycemia",
+    "low sugar",
+    "sweating",
+    "shaking",
+    "dose",
+    "units",
+    "stacking",
+    "glucose"
+  ],
+  "risk": "Insulin dose errors and dose stacking can cause severe hypoglycemia.",
+  "required_info": [
+    "blood glucose reading",
+    "insulin type",
+    "dose timing",
+    "last meal",
+    "symptoms",
+    "renal function if relevant"
+  ],
+  "safety_action": "If severe hypoglycemia, unconsciousness, seizure, or inability to take oral glucose occurs, urgent emergency care is required.",
+  "source_ids": [
+    "local_safety_rule_insulin_hypoglycemia_v1"
+  ],
+  "required_fields": [
+    "blood_glucose",
+    "insulin_type",
+    "dose_timing",
+    "last_meal",
+    "hypoglycemia_symptoms"
+  ],
+  "monitoring": [
+    "blood glucose",
+    "meal timing",
+    "dose timing",
+    "hypoglycemia symptoms"
+  ],
+  "urgency_changers": [
+    "Loss of consciousness, seizure, inability to swallow, or recurrent severe hypoglycemia."
+  ],
+  "pharmacist_traps": [
+    "Do not recommend correction doses without confirming insulin type, timing, glucose trend, and last meal."
+  ]
+}

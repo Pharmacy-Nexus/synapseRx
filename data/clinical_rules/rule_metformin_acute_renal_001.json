@@ -1,0 +1,51 @@
+{
+  "id": "RULE-METFORMIN-ACUTE-RENAL-001",
+  "name": "Metformin acute illness and renal-risk screen",
+  "trigger": {
+    "drugs": [
+      "metformin"
+    ],
+    "terms_any": [
+      "aki",
+      "acute kidney",
+      "dehydration",
+      "vomiting",
+      "diarrhea",
+      "hypotension",
+      "hypoxia",
+      "egfr",
+      "renal failure",
+      "جفاف",
+      "قيء",
+      "اسهال",
+      "إسهال"
+    ],
+    "require_terms_with_drug_gate": true
+  },
+  "risk": "AKI, dehydration, hypoperfusion, hypoxia, or severe renal impairment can increase metformin accumulation and lactic-acidosis concern.",
+  "required_info": [
+    "current eGFR/renal function",
+    "acid-base status when clinically indicated",
+    "hydration and perfusion status",
+    "hypoxia or sepsis"
+  ],
+  "required_fields": [
+    "renal_function",
+    "hydration_status"
+  ],
+  "safety_action": "Flag metformin for temporary hold/review during significant acute illness, AKI, dehydration, hypoperfusion, hypoxia, or when renal function is below the applicable product/local threshold.",
+  "monitoring": [
+    "renal function recovery",
+    "hydration and oral intake",
+    "acid-base/lactate when clinically indicated"
+  ],
+  "urgency_changers": [
+    "Worsening acidosis, shock, hypoxia, severe AKI, altered mental status, or rising lactate."
+  ],
+  "pharmacist_traps": [
+    "Do not treat this as a routine chronic dose-adjustment question during active AKI or hypoperfusion."
+  ],
+  "source_ids": [
+    "local_rule_metformin_acute_renal_v1"
+  ]
+}

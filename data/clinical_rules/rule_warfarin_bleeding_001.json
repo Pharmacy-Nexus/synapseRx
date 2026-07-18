@@ -1,0 +1,46 @@
+{
+  "id": "RULE-WARFARIN-BLEEDING-001",
+  "name": "Warfarin bleeding-risk screen",
+  "trigger_drug_classes": [
+    "vitamin K antagonist anticoagulant"
+  ],
+  "trigger_terms": [
+    "bleeding",
+    "bruise",
+    "inr",
+    "amiodarone",
+    "aspirin",
+    "nsaid",
+    "blood"
+  ],
+  "risk": "Warfarin has high harm potential when interacting drugs or bleeding symptoms are present.",
+  "required_info": [
+    "current INR",
+    "bleeding symptoms",
+    "warfarin dose",
+    "new interacting medicines",
+    "liver disease history"
+  ],
+  "safety_action": "Bleeding symptoms or very high INR require urgent clinician assessment; do not advise self-adjustment without prescriber guidance.",
+  "source_ids": [
+    "local_safety_rule_warfarin_bleeding_screen_v1"
+  ],
+  "required_fields": [
+    "inr",
+    "bleeding_symptoms",
+    "warfarin_dose",
+    "new_interacting_medicines",
+    "liver_disease_history"
+  ],
+  "monitoring": [
+    "INR trend",
+    "bleeding assessment",
+    "hemoglobin when bleeding is suspected"
+  ],
+  "urgency_changers": [
+    "Melena, hematemesis, hematuria, severe headache, syncope, hypotension, or active major bleeding."
+  ],
+  "pharmacist_traps": [
+    "A recent normal INR does not exclude a delayed interaction after a newly started medicine."
+  ]
+}

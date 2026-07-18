@@ -1,0 +1,41 @@
+{
+  "id": "RULE-RAAS-MRA-HYPERK-001",
+  "name": "RAAS blocker + mineralocorticoid receptor antagonist hyperkalemia screen",
+  "trigger": {
+    "all_class_groups": [
+      [
+        "ACE inhibitor",
+        "angiotensin receptor blocker (ARB)"
+      ],
+      [
+        "mineralocorticoid receptor antagonist"
+      ]
+    ]
+  },
+  "risk": "Additive reduction in potassium excretion can cause clinically important hyperkalemia, particularly with CKD, diabetes, dehydration, or concurrent NSAID use.",
+  "required_info": [
+    "serum potassium trend",
+    "serum creatinine/eGFR trend",
+    "recent dose changes"
+  ],
+  "required_fields": [
+    "serum_potassium",
+    "renal_function",
+    "recent_dose_changes"
+  ],
+  "safety_action": "Do not reassure or adjust therapy from a historical potassium alone; use current potassium and renal function and follow the local heart-failure/RAAS monitoring protocol.",
+  "monitoring": [
+    "serum potassium",
+    "serum creatinine/eGFR",
+    "blood pressure"
+  ],
+  "urgency_changers": [
+    "Potassium at or above the local emergency threshold, ECG changes, oliguria, or rapidly worsening kidney function."
+  ],
+  "pharmacist_traps": [
+    "A previously tolerated combination can become unsafe during acute illness or after an NSAID is added."
+  ],
+  "source_ids": [
+    "local_rule_raas_mra_v1"
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "id": "RULE-NSAID-RENAL-001",
+  "name": "NSAID renal-risk screen",
+  "trigger_drug_classes": [
+    "NSAID"
+  ],
+  "trigger_terms": [
+    "renal",
+    "kidney",
+    "ckd",
+    "dehydration",
+    "diuretic",
+    "ace",
+    "arb",
+    "heart failure"
+  ],
+  "risk": "NSAIDs can precipitate AKI and worsen blood pressure/heart failure in susceptible patients.",
+  "required_info": [
+    "renal function",
+    "hydration status",
+    "heart failure status",
+    "concurrent ACEI/ARB/diuretic"
+  ],
+  "safety_action": "Prefer non-NSAID options or short supervised use in renal/cardiovascular high-risk patients.",
+  "source_ids": [
+    "local_safety_rule_nsaid_renal_screen_v1"
+  ],
+  "required_fields": [
+    "renal_function",
+    "hydration_status",
+    "heart_failure_status",
+    "concurrent_acei_arb_diuretic"
+  ],
+  "monitoring": [
+    "serum creatinine/eGFR",
+    "urine output",
+    "blood pressure",
+    "hydration status",
+    "serum potassium"
+  ],
+  "urgency_changers": [
+    "Rising creatinine, reduced urine output, dehydration, hypotension, CKD, or heart failure."
+  ],
+  "pharmacist_traps": [
+    "Assess ACEI/ARB plus diuretic plus NSAID as one renal-risk cluster, not isolated minor pairs."
+  ]
+}

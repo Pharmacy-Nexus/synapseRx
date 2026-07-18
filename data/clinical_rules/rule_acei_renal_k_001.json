@@ -1,0 +1,47 @@
+{
+  "id": "RULE-ACEI-RENAL-K-001",
+  "name": "ACE inhibitor/ARB potassium and renal monitoring",
+  "trigger_drug_classes": [
+    "ACE inhibitor",
+    "angiotensin receptor blocker (ARB)"
+  ],
+  "trigger_terms": [
+    "potassium",
+    "kcl",
+    "renal",
+    "kidney",
+    "creatinine",
+    "egfr",
+    "ckd"
+  ],
+  "risk": "Hyperkalemia and renal function deterioration can be missed if K+ and renal function are unknown.",
+  "required_info": [
+    "serum potassium",
+    "serum creatinine",
+    "eGFR",
+    "recent dose changes",
+    "NSAID or potassium-sparing diuretic use"
+  ],
+  "safety_action": "Do not reassure that potassium supplementation is safe with ACEI/ARB unless labs and indication are known.",
+  "source_ids": [
+    "local_safety_rule_acei_arb_monitoring_v1"
+  ],
+  "required_fields": [
+    "serum_potassium",
+    "serum_creatinine",
+    "egfr",
+    "recent_dose_changes",
+    "concurrent_nsaid_or_potassium_sparing_diuretic"
+  ],
+  "monitoring": [
+    "serum potassium trend",
+    "serum creatinine/eGFR trend",
+    "blood pressure"
+  ],
+  "urgency_changers": [
+    "Marked hyperkalemia, ECG changes, oliguria, hypotension, or rapidly worsening renal function."
+  ],
+  "pharmacist_traps": [
+    "Do not treat a normal historical potassium as current reassurance after an acute illness or dose change."
+  ]
+}
