@@ -1,7 +1,3 @@
-// Direct NVIDIA provider diagnostic.
-// Open /api/test-nvidia after deployment. It bypasses Atom's composer, RAG,
-// parser, chat history, streaming, and UI completely.
-
 const DEFAULT_API_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
 const DEFAULT_MODEL = 'google/gemma-4-31b-it';
 
@@ -14,11 +10,7 @@ module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, max-age=0');
 
   if (!process.env.NVIDIA_API_KEY) {
-    return res.status(500).json({
-      ok: false,
-      stage: 'configuration',
-      error: 'NVIDIA_API_KEY is missing in this deployment environment.'
-    });
+    return res.status(500).json({ ok: false, stage: 'configuration', error: 'NVIDIA_API_KEY is missing in this deployment environment.' });
   }
 
   const model = clean(process.env.NVIDIA_MODEL, DEFAULT_MODEL);
@@ -39,9 +31,7 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model,
-        messages: [
-          { role: 'user', content: 'Reply with exactly: Connection working' }
-        ],
+        messages: [{ role: 'user', content: 'Reply with exactly: Connection working' }],
         temperature: 0.1,
         top_p: 0.9,
         max_tokens: 32,
@@ -53,21 +43,14 @@ module.exports = async (req, res) => {
     let parsed = null;
     try { parsed = raw ? JSON.parse(raw) : null; } catch {}
 
-    const reply = String(
-      parsed?.choices?.[0]?.message?.content ||
-      parsed?.choices?.[0]?.text ||
-      ''
-    ).trim();
-
+    const reply = String(parsed?.choices?.[0]?.message?.content || parsed?.choices?.[0]?.text || '').trim();
     return res.status(response.ok ? 200 : response.status).json({
       ok: response.ok,
       stage: 'provider_response',
       status: response.status,
       durationMs: Date.now() - startedAt,
       model,
-      apiHost: (() => {
-        try { return new URL(apiUrl).host; } catch { return 'invalid-url'; }
-      })(),
+      apiHost: (() => { try { return new URL(apiUrl).host; } catch { return 'invalid-url'; } })(),
       reply,
       providerBody: parsed || raw.slice(0, 3000)
     });

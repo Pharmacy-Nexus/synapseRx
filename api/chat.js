@@ -4,7 +4,8 @@ const { localParseQuestion, inheritContextIfNeeded, getRecentContextText, inferM
 const { normalizeDrugList } = require('../lib/normalizer');
 const { retrieveEvidence, triageRisk } = require('../lib/engines');
 const { buildEvidenceBrief } = require('../lib/evidenceBrief');
-const { MODEL, SIDE_MODEL, API_URL, callFinalModel, callSideAskModel, relayNvidiaStream, localFallbackAnswer } = require('../lib/composer');
+const { MODEL, API_URL, callFinalModel, relayNvidiaStream, localFallbackAnswer } = require('../lib/composer');
+const { extractModelReply, handleSideAskRequest } = require('../lib/sideAskHandler');
 
 const MODE_LABELS = {
   general_chat: 'General Chat',
@@ -128,40 +129,19 @@ function sendPlainText(res, text, status = 200) {
 }
 
 
-function extractAiReply(data) {
-  return String(data?.choices?.[0]?.message?.content || '').trim();
-}
-
-function looksCorruptedSideAskReply(reply = '', question = '') {
-  const text = String(reply || '').trim();
-  const prompt = String(question || '');
-  if (!text) return true;
-  if (text.length < 2) return true;
-  const promptHasCjk = /[\u3040-\u30ff\u3400-\u9fff]/.test(prompt);
-  const cjkCount = (text.match(/[\u3040-\u30ff\u3400-\u9fff]/g) || []).length;
-  if (!promptHasCjk && cjkCount > 6) return true;
-  if (/(?:\bthe\b\s*){5,}/i.test(text)) return true;
-  if (/(\b\w{1,8}\b)(?:\s+\1){4,}/i.test(text)) return true;
-  if (/0\.1\s*(?:و|和|and)\s*0\.2/.test(text) && !/0\.1|0\.2/.test(prompt)) return true;
-  return false;
-}
-
 async function readProviderJson(upstream) {
   const raw = await upstream.text();
   try { return raw ? JSON.parse(raw) : {}; }
   catch { return { raw }; }
 }
 
-function extractMainReply(data) {
-  return String(data?.choices?.[0]?.message?.content || '').trim();
-}
 
 async function callFinalModelWithOneRetry(args) {
   let upstream = await callFinalModel(args);
   if (args.shouldStream) return upstream;
   if (!upstream.ok) return upstream;
   const data = await readProviderJson(upstream);
-  const reply = extractMainReply(data);
+  const reply = extractModelReply(data);
   if (reply) return { ok: true, status: upstream.status, __json: data };
   const retry = await callFinalModel({
     ...args,
@@ -181,15 +161,21 @@ function extractAlreadyClinical(text = '') {
   return /\b(patient|case|drug|medicine|medication|symptom|diagnosis|lab|labs|bleeding|seizure|unconscious|chest pain|breathing)\b|مريض|حالة|دواء|دوا|اعراض|أعراض|تحليل|تحاليل|نزيف|تشنج|اغماء|إغماء|اختناق|صدر|تنفس/.test(String(text || '').toLowerCase());
 }
 
-function resolveMode(selectedMode, detectedMode, latestUserText) {
-  let mode = MODE_LABELS[selectedMode] ? selectedMode : 'general_chat';
-  // Strong tool signals auto-switch the UI and response style.
-  if (detectedMode !== 'general_chat') mode = detectedMode;
-  // A user-selected Case mode stays Case unless the text is clearly general knowledge.
-  if (selectedMode === 'case_analysis' && detectedMode === 'general_chat' && !isGeneralKnowledgeQuestion(latestUserText)) mode = 'case_analysis';
-  // General medical/pharmacy education is not a case.
-  if (isGeneralKnowledgeQuestion(latestUserText) && detectedMode === 'general_chat') mode = 'general_chat';
-  return mode;
+function resolveMode(selectedMode, detectedMode, latestUserText, options = {}) {
+  const selected = MODE_LABELS[selectedMode] ? selectedMode : 'general_chat';
+  const modeSource = options.modeSource === 'manual' ? 'manual' : 'auto';
+
+  // A continuation belongs to the current conversation mode. Do not force it
+  // into Case Analysis when the previous mode was Drug Interaction or Reverse.
+  if (options.continuationRequest) return selected !== 'general_chat' ? selected : detectedMode;
+
+  // An explicit user choice wins. Auto-detection is used only when the UI mode
+  // was not manually selected for this turn.
+  if (modeSource === 'manual') return selected;
+
+  if (detectedMode !== 'general_chat') return detectedMode;
+  if (selected === 'case_analysis' && !isGeneralKnowledgeQuestion(latestUserText)) return 'case_analysis';
+  return 'general_chat';
 }
 
 module.exports = async (req, res) => {
@@ -204,47 +190,7 @@ module.exports = async (req, res) => {
     const body = await parseRequestBody(req);
     const messages = Array.isArray(body.messages) ? body.messages : [];
 
-    // Side Ask is intentionally independent from the main chat payload.
-    // The frontend sends { sideAsk: true, question } without messages, so handle it
-    // before requiring a latest main-chat user message.
-    if (body.sideAsk === true) {
-      const question = String(body.question || '').trim();
-      if (!question) return res.status(400).json({ error: 'No Side Ask question found.' });
-      try {
-        let upstream = await callSideAskModel({ question });
-        if (!upstream.ok) {
-          const sideErrorText = await upstream.text().catch(() => '');
-          console.error('Side Ask provider failed', {
-            status: upstream.status,
-            model: SIDE_MODEL,
-            apiUrl: API_URL,
-            details: safeParseJson(sideErrorText) || sideErrorText.slice(0, 500)
-          });
-          return res.status(502).json({ error: 'Side Ask AI provider failed. Check NVIDIA_API_KEY / NEXUS_SIDE_MODEL in Vercel.' });
-        }
-        let data = await readProviderJson(upstream);
-        let reply = extractAiReply(data);
-
-        if (looksCorruptedSideAskReply(reply, question)) {
-          upstream = await callSideAskModel({ question, strict: true });
-          if (upstream.ok) {
-            data = await readProviderJson(upstream);
-            const retryReply = extractAiReply(data);
-            if (!looksCorruptedSideAskReply(retryReply, question)) reply = retryReply;
-          }
-        }
-
-        if (looksCorruptedSideAskReply(reply, question)) {
-          reply = 'Side Ask received a corrupted/unclear model output. Please resend the question in one clear sentence.';
-        }
-
-        res.setHeader('X-Nexus-Side-Ask', 'true');
-        return res.status(200).json({ mode: 'side_ask', risk: 'none', reply });
-      } catch (error) {
-        if (error.name === 'AbortError') return res.status(504).json({ error: 'Side Ask timed out. Try a shorter question.' });
-        throw error;
-      }
-    }
+    if (body.sideAsk === true) return handleSideAskRequest(body, res);
 
     const latestUserText = getLatestUserText(messages);
     if (!latestUserText) return res.status(400).json({ error: 'No user message found.' });
@@ -278,7 +224,10 @@ module.exports = async (req, res) => {
     const detectionText = continuationRequest ? `${recentContextForScope}\n${latestUserText}` : latestUserText;
     const detectedMode = detectModeFromText(detectionText, DATA);
     const selectedMode = MODE_LABELS[body.mode] ? body.mode : 'general_chat';
-    const mode = continuationRequest && detectedMode === 'general_chat' ? 'case_analysis' : resolveMode(selectedMode, detectedMode, latestUserText);
+    const mode = resolveMode(selectedMode, detectedMode, latestUserText, {
+      continuationRequest,
+      modeSource: body.modeSource
+    });
     const attachmentText = attachmentContext(messages);
     const quickAccessText = quickAccessContext(body);
     const recentContextText = recentContextForScope;
@@ -292,6 +241,10 @@ module.exports = async (req, res) => {
     parsed.missingCriticalInfo = Array.from(new Set([...(parsed.missingCriticalInfo || []), ...inferMissingInfo(parsed)]));
 
     const evidence = retrieveEvidence(parsed, DATA, `${latestUserText}\n${recentContextText}`);
+    parsed.missingCriticalInfo = Array.from(new Set([
+      ...(parsed.missingCriticalInfo || []),
+      ...(evidence.missingRequiredInfo || [])
+    ]));
     const triage = triageRisk(parsed, evidence, latestUserText, DATA);
     const { validation, conflictResolver, shadowCheck, pipelineContext } = buildEvidenceBrief({ mode, parsed, evidence, triage, latestUserText });
 
@@ -347,7 +300,7 @@ module.exports = async (req, res) => {
 
           if (retryUpstream.ok) {
             const retryData = retryUpstream.__json || await retryUpstream.json();
-            const retryReply = extractMainReply(retryData);
+            const retryReply = extractModelReply(retryData);
             if (retryReply) {
               res.setHeader('X-Nexus-Mode', mode);
               res.setHeader('X-Nexus-Risk', triage.level);
@@ -398,7 +351,7 @@ module.exports = async (req, res) => {
     }
 
     const data = upstream.__json || await upstream.json();
-    const reply = extractMainReply(data) || localFallbackAnswer({ parsed, evidence, triage, validation, reason: 'empty_response' });
+    const reply = extractModelReply(data) || localFallbackAnswer({ parsed, evidence, triage, validation, reason: 'empty_response' });
     return res.status(200).json({
       mode,
       risk: triage.level,
